@@ -11,6 +11,10 @@ Hardware
 - Chaitic Labs Voron Tap with optotap v2.1
 - CNC Aluminium Idlers
 
+Hardware *Not installed*
+- PT100 Stick
+- CNC Aluminium Clockwork extruder 
+
 Klipper Mods
 - Klipper-backup
 - 
