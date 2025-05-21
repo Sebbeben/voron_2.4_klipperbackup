@@ -12,6 +12,11 @@ Hardware
 - BTT Pi Screen 5"
 - Chaitic Labs Voron Tap with optotap v2.1
 - CNC Aluminium Idlers
+- Rapido UHF Hotend
+- Meanwell 24v 200w psu
+- Voron Daylight on a stick
+- Pi Cam
+- OMRON SSR 40A
 
 Hardware *Not installed*
 - PT100 Stick
