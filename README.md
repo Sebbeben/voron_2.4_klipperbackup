@@ -4,7 +4,9 @@ Hardware
 - Fysetc Voron 2.4 kit
 - Fysetc Aluminium parts kit
 - Raspberry Pi 4B 8GB
+ - Waveshare CAN rs485 Hat
 - Fysetc Spider v1.1
+ - Fysetc Spider CAN Expander
 - Mellow SB2040 v1
 - Orbiter v1.8?
 - BTT Pi Screen 5"
