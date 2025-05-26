@@ -19,15 +19,15 @@ Hardware
 - Pi Cam
 - [OMRON G3NB-225B-1 25A SSR](https://www.omron-ap.com/products/family/3232/download/catalog.html)
 
-###Hardware *Not installed*
+Hardware *Not installed*
 - Voron PT100 Stick
 - Fysetc CNC Aluminium Clockwork extruder 
 
-##Klipper Mods
-- [Klipper-backup]()
+Klipper Mods
+- [Klipper-backup](https://github.com/Staubgeborener/Klipper-Backup)
 - [Klipper-Adaptive-Meshing-Purging
  KAMP]()
 - [Filament dryer macro](https://gist.github.com/NameOfTheDragon/e579295549aaa19b3f41ae07b8f3cbd6#file-filament_dryer-cfg)
 
-##Printed Mods
+Printed Mods
 - [Orbitu for Stealthburner Orbiter extruder](https://github.com/Saccco/VoronUsers/tree/master/printer_mods/Saccco/Orbitu)
