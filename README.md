@@ -31,3 +31,10 @@ Klipper Mods
 
 Printed Mods
 - [Orbitu for Stealthburner Orbiter extruder](https://github.com/Saccco/VoronUsers/tree/master/printer_mods/Saccco/Orbitu)
+
+
+
+
+<HR>
+
+[Make Klipper run on a single core for itself](https://canbus.esoterical.online/troubleshooting/timeout_during_homing_probing.html#:~:text=Go%20through%20the%20steps%20in%20reverse%20order%20%28re-enable,the%20limits%20of%20what%20your%20Pi%20can%20handle.)
