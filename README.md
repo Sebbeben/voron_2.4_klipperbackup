@@ -1,6 +1,6 @@
 # voron_2.4_klipperbackup
 
-Hardware
+## Hardware
 - [Fysetc Voron 2.4 kit 350](https://github.com/FYSETC/FYSETC-Voron-2)
 - [Fysetc Aluminium parts kit](https://github.com/FYSETC/FYSETC-VORON-2.4-R2-Pro/tree/main/2.4%20R2%20CNC%20V2.0/2.4%20R2%20CNC%20V2.0)
 - Raspberry Pi 4B 8GB
@@ -19,22 +19,22 @@ Hardware
 - Pi Cam
 - [OMRON G3NB-225B-1 25A SSR](https://www.omron-ap.com/products/family/3232/download/catalog.html)
 
-Hardware *Not installed*
+## Hardware *Not installed*
 - Voron PT100 Stick
 - Fysetc CNC Aluminium Clockwork extruder 
 
-Klipper Mods
+## Klipper Mods
 - [Klipper-backup](https://github.com/Staubgeborener/Klipper-Backup)
 - [Klipper-Adaptive-Meshing-Purging
  KAMP]()
 - [Filament dryer macro](https://gist.github.com/NameOfTheDragon/e579295549aaa19b3f41ae07b8f3cbd6#file-filament_dryer-cfg)
 
-Printed Mods
+## Printed Mods
 - [Orbitu for Stealthburner Orbiter extruder](https://github.com/Saccco/VoronUsers/tree/master/printer_mods/Saccco/Orbitu)
 
 
+## Extras <BR>
+- [Make Klipper run on a single core for itself](https://canbus.esoterical.online/troubleshooting/timeout_during_homing_probing.html#:~:text=Go%20through%20the%20steps%20in%20reverse%20order%20%28re-enable,the%20limits%20of%20what%20your%20Pi%20can%20handle)
 
-
-<HR>
-
-[Make Klipper run on a single core for itself](https://canbus.esoterical.online/troubleshooting/timeout_during_homing_probing.html#:~:text=Go%20through%20the%20steps%20in%20reverse%20order%20%28re-enable,the%20limits%20of%20what%20your%20Pi%20can%20handle.)
+CANbus
+- Use ```ip -s link show can0``` to show can traffic
