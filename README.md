@@ -10,6 +10,7 @@
  - [Fysetc Canbus Expander for Spider](https://github.com/FYSETC/FYSETC-SPIDER/blob/main/images/CANBUS.jpg)
 - [Mellow SB2040 v1](https://mellow-3d.github.io/fly_sb2040_v1_general.html)
 - [Orbiter v1.8?]()
+   - [FYSETC G36HSY4405-6D-1200 stepper motor](https://github.com/FYSETC/FYSETC-MOTORS/blob/main/G36HSY4405-6D-1200/G36HSY4405-6D-1200.pdf)
 - [BTT Pi Screen 5"](https://github.com/bigtreetech/BIGTREETECH-TouchScreenHardware/tree/master/BTT%20Pi%20TFT50%20V2.0%20Github/Hardware)
 - [Chaitic Labs Voron Tap V2.0 with optotap v2.1](https://github.com/Chaoticlab/CNC-Tap-for-Voron)
 - CNC Aluminium Idlers
