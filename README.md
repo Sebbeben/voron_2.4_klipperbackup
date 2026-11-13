@@ -89,7 +89,8 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 - [x] KOMB include path fixed (still commented out), duplicate `KOMB.cfg` removed
 - [x] Moonraker database backed up daily (03:30) by `moonraker-db-backup.timer` (systemd) via klipper-backup
 - [x] OrcaSlicer profiles in `printer_data/config/orca_profiles/` (printer, process, ABS/ASA/PLA/PETG/TPU/PA/POM)
-- [x] Prepared, not active: `homing_v2.cfg`, `load_unload_filament_v2.cfg`, `heatsoak.cfg`
+- [x] Prepared, not active: `homing_v2.cfg`, `load_unload_filament_v2.cfg`, `heatsoak.cfg`, `print_start_v2.cfg` (real soak, KAMP purge)
+- [x] Firmware flashing plan: `printer_data/config/FLASHING.md`
 
 ### Remote (Claude, no motion needed)
 - [ ] Re-check CAN `rx_over_errors` after a long run / first print (should stay at 0)
@@ -111,11 +112,12 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 - [ ] Belt tension with the FYSETC gauge: ~110 Hz over 150 mm, A/B within 2 Hz
 - [ ] `SHAPER_CALIBRATE` + `SAVE_CONFIG` (input shaper has never been active)
 - [ ] Extruder `rotation_distance`, then OrcaSlicer flow, PA and max volumetric flow tests
-- [ ] Enable `heatsoak.cfg` and use `HEATSOAK` in `PRINT_START`
+- [ ] Enable `heatsoak.cfg` + `print_start_v2.cfg` (rename old macro to `PRINT_START_OLD`), test with an ABS print
 
 ### Rebuild (after the printer prints reliably again)
 - [ ] Print parts: Stealthburner Rapido UHF (4010 version), wide-mouth 5015 duct, brush mount
 - [ ] UHF toolhead + CNC Tap V2 + shielded CAN cable + HoneyBadger 5015 + nozzle brush/KOMB
+- [ ] Spider: permanent USB cable + Katapult so it can be flashed from the Pi (FLASHING.md option A)
 - [ ] Reflash Spider and SB2040 firmware to the current Klipper version (canserial buffer fix)
 - [ ] If CAN errors remain: USB-CAN adapter (Mellow UTOC / BTT U2C) instead of the MCP2515 HAT
 - [ ] Fume filtration (Nevermore / exhaust fan - config sections already prepared)
