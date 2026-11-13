@@ -1,0 +1,86 @@
+{
+    "type": "machine",
+    "name": "Voron 2.4 350 Rapido 0.4",
+    "inherits": "Voron 2.4 350 0.4 nozzle",
+    "from": "User",
+    "version": "2.1.0.0",
+    "printer_settings_id": "Voron 2.4 350 Rapido 0.4",
+    "is_custom_defined": "0",
+    "printer_notes": "Voron 2.4 350, Orbiter + Phaetus Rapido v1 (HF 0.4 nozzle), Voron TAP, Klipper. Accel/velocity limits mirror printer.cfg (max_accel 3000, max_velocity 300) - raise both here and in printer.cfg after input shaper calibration.",
+    "machine_start_gcode": "M190 S0 ; Stops the slicer from adding its own bed heat-and-wait (PRINT_START does it)\nM109 S0 ; Stops the slicer from adding its own nozzle heat-and-wait (PRINT_START does it)\nPRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single] CHAMBER=[chamber_temperature] SOAK={if filament_type[0]==\"ABS\" or filament_type[0]==\"ASA\" or filament_type[0]==\"PC\" or filament_type[0]==\"PA\"}20{else}0{endif} MATERIAL=[filament_type]\n; SOAK is only used once heatsoak.cfg is enabled - see printer_data/config/heatsoak.cfg\n",
+    "machine_end_gcode": "PRINT_END",
+    "machine_pause_gcode": "PAUSE",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n",
+    "emit_machine_limits_to_gcode": "0",
+    "machine_max_acceleration_x": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_y": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_travel": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_speed_x": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_y": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_z": [
+        "15",
+        "15"
+    ],
+    "machine_max_acceleration_z": [
+        "350",
+        "350"
+    ],
+    "machine_max_jerk_x": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_y": [
+        "5",
+        "5"
+    ],
+    "printable_height": "325",
+    "retraction_length": [
+        "0.5"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "wipe": [
+        "1"
+    ],
+    "z_hop": [
+        "0.2"
+    ],
+    "z_hop_types": "Slope Lift",
+    "retract_lift_above": [
+        "0"
+    ]
+}
