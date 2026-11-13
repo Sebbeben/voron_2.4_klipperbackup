@@ -91,12 +91,15 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 - [x] OrcaSlicer profiles in `printer_data/config/orca_profiles/` (printer, process, ABS/ASA/PLA/PETG/TPU/PA/POM)
 - [x] Prepared, not active: `homing_v2.cfg`, `load_unload_filament_v2.cfg`, `heatsoak.cfg`, `print_start_v2.cfg` (real soak, KAMP purge)
 - [x] Firmware flashing plan: `printer_data/config/FLASHING.md`
+- [x] Pi cam: camera-streamer hung at boot (no frames). Added crowsnest boot delay (`/etc/systemd/system/crowsnest.service.d/boot-delay.conf`), Mainsail webcam set to WebRTC 16:9
 
 ### Remote (Claude, no motion needed)
 - [ ] Re-check CAN `rx_over_errors` after a long run / first print (should stay at 0)
 - [ ] Import the Orca profiles on the PC and check them
+- [ ] Verify the Pi cam works right after the next Pi reboot (crowsnest boot delay, see Done)
 
 ### On site - power OFF
+- [ ] USB cam (UICPAL OV5648, LED + mic on board): plug into the Pi, then read `lsusb -v` / `v4l2-ctl --list-ctrls` / `arecord -l` to find the LED control (likely a UVC extension unit) and test the mic. Add as cam 2 in crowsnest
 - [ ] Check the X rail is **MGN12H** (required for CNC Tap V2)
 - [ ] Clean and grease all linear rails, check belts and printed parts for cracks
 - [ ] Clean the Orbiter drive gears
