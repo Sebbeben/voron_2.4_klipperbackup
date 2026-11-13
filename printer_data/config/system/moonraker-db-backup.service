@@ -1,0 +1,9 @@
+[Unit]
+Description=Moonraker database backup to GitHub (klipper-backup)
+After=network-online.target moonraker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=voron
+ExecStart=/home/voron/moonraker_db_backup.sh
