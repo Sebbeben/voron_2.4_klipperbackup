@@ -8,7 +8,7 @@ Klipper configuration backup for my Voron 2.4 350 (pushed automatically by [Klip
   - Bed heater: 300x300 silicone AC heater, 750 W, with thermal fuse RH15A125
 - [Fysetc Aluminium parts kit](https://github.com/FYSETC/FYSETC-VORON-2.4-R2-Pro/tree/main/2.4%20R2%20CNC%20V2.0/2.4%20R2%20CNC%20V2.0)
 - Raspberry Pi 4B 8GB
-  - [Waveshare RS485 CAN HAT](https://www.waveshare.com/wiki/RS485_CAN_HAT) (MCP2515, `oscillator=12000000, interrupt=25` in `/boot/config.txt`)
+  - [Waveshare RS485 CAN HAT](https://www.waveshare.com/wiki/RS485_CAN_HAT) (MCP2515 over SPI, `oscillator=12000000, interrupt=25, spimaxfrequency=10000000` in `/boot/config.txt`)
 - [Fysetc Spider v1.1](https://github.com/FYSETC/FYSETC-SPIDER) (connected to the Pi over UART `/dev/ttyAMA0`)
   - [Fysetc TMC2209 v3.1](https://github.com/FYSETC/FYSETC-TMC2209) ([Silent2209](https://fysetc.github.io/Silent2209/))
   - [Fysetc Canbus Expander for Spider](https://github.com/FYSETC/FYSETC-SPIDER/blob/main/images/CANBUS.jpg)
@@ -79,19 +79,49 @@ Config changes (backup of the old files kept locally):
 - Added `fan_upgrade.cfg` (inactive)
 
 ## TODO
-- [ ] Fit new fans, enable `fan_upgrade.cfg`, test fans and watchdog
-- [ ] Fix the Klipper CPU pinning (see Extras - the override file is broken)
-- [ ] Bed `max_power` 0.6 -> 1.0 (allowed with the 25 A SSR and 750 W heater) + bed PID at 110 C
-- [ ] Belt tension with the FYSETC gauge, then input shaper (has never been enabled)
-- [ ] Adaptive mesh: `BED_MESH_CALIBRATE ADAPTIVE=1`
-- [ ] Calibrate extruder `rotation_distance` (Cura flow is set to 92 % to hide it), then pressure advance and max volumetric flow
-- [ ] Slicer: lower speeds to match the measured max flow, ABS at 250 C (consider OrcaSlicer for built-in calibration tests)
-- [ ] Verify which CAN module is used and the MCP2515 crystal (12 MHz expected); CAN shows rx errors
-- [ ] UHF toolhead + CNC Tap V2 + new CAN cable + nozzle brush/KOMB in one rebuild
+Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
+
+### Done 2026-11-13
+- [x] Klipper CPU pinning fixed (`[Service]` header) - Klipper runs on core 3
+- [x] MCP2515 SPI clock 2 MHz -> 10 MHz in `/boot/config.txt` (active after reboot)
+- [x] Software updated: Klipper v0.13.0-827, Moonraker v0.11, Mainsail v2.19, Crowsnest v4.2, klipper-backup, Sonar, KAMP (MCU firmware still v0.13.0-112/120 - works)
+- [x] Adaptive mesh verified: already active via KAMP (`exclude_object` + Moonraker object processing)
+- [x] KOMB include path fixed (still commented out), duplicate `KOMB.cfg` removed
+- [x] Prepared, not active: `homing_v2.cfg`, `load_unload_filament_v2.cfg`, `heatsoak.cfg`
+
+### Remote (Claude, no motion needed)
+- [ ] Reboot the Pi, then compare CAN `rx_over_errors` (baseline ~310/h at 2 MHz SPI)
+- [ ] OrcaSlicer profiles: printer + ABS, ASA, PLA, PETG, TPU, PA (nylon), POM + process
+- [ ] Moonraker database backup in klipper-backup (needs approval: touches `.env`)
+
+### On site - power OFF
+- [ ] Check the X rail is **MGN12H** (required for CNC Tap V2)
+- [ ] Clean and grease all linear rails, check belts and printed parts for cracks
+- [ ] Clean the Orbiter drive gears
+- [ ] Fit the chamber NTC (spare HT-NTC100K) on Spider T0 / PC0, mid-height side panel
+- [ ] Fit new fans when delivered (see `fan_upgrade.cfg` for wiring)
+
+### On site - heaters only, bed empty
+- [ ] Bed `max_power` 0.6 -> 1.0 + `PID_CALIBRATE HEATER=heater_bed TARGET=110`, check electronics fans start at bed > 45 C
+- [ ] After the new hotend fan: enable `fan_upgrade.cfg`, test fan + watchdog, hot-tighten the nozzle at 250 C, hotend PID
+
+### Needs motion
+- [ ] Test and enable `homing_v2.cfg` and `load_unload_filament_v2.cfg`
+- [ ] Belt tension with the FYSETC gauge: ~110 Hz over 150 mm, A/B within 2 Hz
+- [ ] `SHAPER_CALIBRATE` + `SAVE_CONFIG` (input shaper has never been active)
+- [ ] Extruder `rotation_distance`, then OrcaSlicer flow, PA and max volumetric flow tests
+- [ ] Enable `heatsoak.cfg` and use `HEATSOAK` in `PRINT_START`
+
+### Rebuild (after the printer prints reliably again)
+- [ ] Print parts: Stealthburner Rapido UHF (4010 version), wide-mouth 5015 duct, brush mount
+- [ ] UHF toolhead + CNC Tap V2 + shielded CAN cable + HoneyBadger 5015 + nozzle brush/KOMB
+- [ ] Reflash Spider and SB2040 firmware to the current Klipper version (canserial buffer fix)
+- [ ] If CAN errors remain: USB-CAN adapter (Mellow UTOC / BTT U2C) instead of the MCP2515 HAT
+- [ ] Fume filtration (Nevermore / exhaust fan - config sections already prepared)
 
 ## Extras <BR>
 - [Make Klipper run on a single core for itself](https://canbus.esoterical.online/troubleshooting/timeout_during_homing_probing.html#:~:text=Go%20through%20the%20steps%20in%20reverse%20order%20%28re-enable,the%20limits%20of%20what%20your%20Pi%20can%20handle)
-  - **Currently not working:** `/etc/systemd/system/klipper.service.d/override.conf` has the header `service]` instead of `[Service]`, so `CPUAffinity=3` is ignored. Fix:
+  - Fixed 2026-11-13: `/etc/systemd/system/klipper.service.d/override.conf` had the header `service]` instead of `[Service]`, so `CPUAffinity=3` was ignored. Fix used:
     ```bash
     sudo sed -i 's/^service]$/[Service]/' /etc/systemd/system/klipper.service.d/override.conf
     sudo systemctl daemon-reload && sudo systemctl restart klipper
