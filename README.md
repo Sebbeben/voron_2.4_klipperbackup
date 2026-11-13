@@ -1,41 +1,103 @@
 # voron_2.4_klipperbackup
 
+Klipper configuration backup for my Voron 2.4 350 (pushed automatically by [Klipper-backup](https://github.com/Staubgeborener/Klipper-Backup)).
+
 ## Hardware
-- [Fysetc Voron 2.4 kit 350](https://github.com/FYSETC/FYSETC-Voron-2)
+- [Fysetc Voron 2.4 kit 350](https://github.com/FYSETC/FYSETC-Voron-2) (shipped with Spider v1.1 and Omron SSR, i.e. [BOM](https://github.com/FYSETC/FYSETC-Voron-2/blob/main/BOM.md) rev 1.3 / R2 rev 1.0)
+  - XY + Z motors: 6x [17HS19-2004S-C](https://github.com/FYSETC/FYSETC-MOTORS/tree/main/17HS19-2004S-C) (2.0 A), run at 0.8 A
+  - Bed heater: 300x300 silicone AC heater, 750 W, with thermal fuse RH15A125
 - [Fysetc Aluminium parts kit](https://github.com/FYSETC/FYSETC-VORON-2.4-R2-Pro/tree/main/2.4%20R2%20CNC%20V2.0/2.4%20R2%20CNC%20V2.0)
 - Raspberry Pi 4B 8GB
- - [Waveshare RS485 CAN HAT](https://www.waveshare.com/wiki/RS485_CAN_HAT)
-- [Fysetc Spider v1.1](https://github.com/FYSETC/FYSETC-SPIDER)
- - [Fysetc tmc2209 v3.1](https://github.com/FYSETC/FYSETC-TMC2209)(https://fysetc.github.io/Silent2209/)
- - [Fysetc Canbus Expander for Spider](https://github.com/FYSETC/FYSETC-SPIDER/blob/main/images/CANBUS.jpg)
-- [Mellow SB2040 v1](https://mellow-3d.github.io/fly_sb2040_v1_general.html)
-- [Orbiter v1.8?]()
-   - [FYSETC G36HSY4405-6D-1200 stepper motor](https://github.com/FYSETC/FYSETC-MOTORS/blob/main/G36HSY4405-6D-1200/G36HSY4405-6D-1200.pdf)
+  - [Waveshare RS485 CAN HAT](https://www.waveshare.com/wiki/RS485_CAN_HAT) (MCP2515, `oscillator=12000000, interrupt=25` in `/boot/config.txt`)
+- [Fysetc Spider v1.1](https://github.com/FYSETC/FYSETC-SPIDER) (connected to the Pi over UART `/dev/ttyAMA0`)
+  - [Fysetc TMC2209 v3.1](https://github.com/FYSETC/FYSETC-TMC2209) ([Silent2209](https://fysetc.github.io/Silent2209/))
+  - [Fysetc Canbus Expander for Spider](https://github.com/FYSETC/FYSETC-SPIDER/blob/main/images/CANBUS.jpg)
+- [Mellow SB2040 v1](https://mellow-3d.github.io/fly_sb2040_v1_general.html) (CAN, 1 Mbit) - [pin definitions](https://mellow-3d.github.io/fly_sb2040_v1_pins.html)
+- Orbiter extruder (version to be verified - `rotation_distance: 4.637` is the Orbiter 2.0 value)
+  - [FYSETC G36HSY4405-6D-1200 stepper motor](https://github.com/FYSETC/FYSETC-MOTORS/blob/main/G36HSY4405-6D-1200/G36HSY4405-6D-1200.pdf), run at 0.65 A
+- [Rapido UHF Hotend](https://www.phaetus.com/products/rapido-hotend?variant=45122834465045) (v1, HF + UHF nozzles included)
+  - Currently: temporary V6 0.4 mm nozzle; plan: HF nozzle back, then UHF with a new toolhead
 - [BTT Pi Screen 5"](https://github.com/bigtreetech/BIGTREETECH-TouchScreenHardware/tree/master/BTT%20Pi%20TFT50%20V2.0%20Github/Hardware)
-- [Chaitic Labs Voron Tap V2.0 with optotap v2.1](https://github.com/Chaoticlab/CNC-Tap-for-Voron)
+- [Chaotic Labs Voron Tap V2.0 with OptoTap v2.1](https://github.com/Chaoticlab/CNC-Tap-for-Voron) (5 V)
 - CNC Aluminium Idlers
-- [Rapido UHF Hotend](https://www.phaetus.com/products/rapido-hotend?variant=45122834465045)
 - [Meanwell LRS-200-24 psu](https://meanwell-ps.com/products/lrs-200-24)
-- [Voron Daylight on a stick XXL](https://github.com/VoronDesign/Voron-Hardware/tree/master/Daylight)
-- Pi Cam
+- [Voron Daylight on a stick XXL](https://github.com/VoronDesign/Voron-Hardware/tree/master/Daylight) (`output_pin daylight`, PB15)
+- Pi Cam (OV5647, 1280x720 @ 15 fps via Crowsnest)
 - [OMRON G3NB-225B-1 25A SSR](https://www.omron-ap.com/products/family/3232/download/catalog.html)
 
+### Fans
+| Position | Fan | Pin | Status |
+|---|---|---|---|
+| Hotend (lower, 4010 axial) | [HoneyBadger 4010 axial 24V High SP 9400 RPM](https://3do.dk/en/fans/1145-4010-axial-fan-24v-by-honeybadger-high-sp-9400-rpm.html) | SB2040 `gpio14` (+ tach `gpio29`) | Ordered 2026-11-13 - replaces a dead sleeve-bearing fan |
+| Part cooling (upper, 5015 blower) | [HoneyBadger 5015 blower 9200 RPM, 4-wire PWM/tach, wide mouth](https://3do.dk/en/fans/4366-5015-blower-fan-by-honeybadger-9200-rpm-4-wires-pwmtach-wide-mouth.html) | SB2040 power `gpio13`, PWM `gpio17` | Ordered 2026-11-13 - duct needs adapting for the wide mouth |
+| Electronics bay | Kit 6020 fans | Spider `PB2` (on when bed > 45 C) | Check that they still spin |
+
+Config for the new fans is prepared (commented out) in `fan_upgrade.cfg`, including a hotend fan watchdog that pauses the print if the fan stalls.
+
 ## Hardware *Not installed*
+- [BIQU CNC Voron Tap V2](https://github.com/Chaoticlab/CNC-Tap-for-Voron/tree/master/STL/CNC_VORON_TAP_V2) - plan: fit together with the UHF toolhead
+- Voron 2.4 silicone nozzle brush kit ([print files](https://www.thingiverse.com/thing:6724416)) - KOMB macro is already installed
+- Mellow 3 m shielded twisted-pair CAN cable (20CANW3M) - plan: replace the current CAN cable
+- OV5648 USB camera, 5 MP autofocus, 120 degrees
+- FYSETC belt tension gauge (tool)
+- Spare Orbiter motor: FYSETC 36STH20-1004AHG
+- Simple filament runout switch
 - Voron PT100 Stick
-- Fysetc CNC Aluminium Clockwork extruder 
+- Fysetc CNC Aluminium Clockwork extruder
+- Unused kit parts: BMG extruder kit + 42HS20401B motor, E3D V6 hotend
 
 ## Klipper Mods
 - [Klipper-backup](https://github.com/Staubgeborener/Klipper-Backup)
-- [Klipper-Adaptive-Meshing-Purging
- KAMP]()
-- [Filament dryer macro](https://gist.github.com/NameOfTheDragon/e579295549aaa19b3f41ae07b8f3cbd6#file-filament_dryer-cfg)
+- [Klipper-Adaptive-Meshing-Purging (KAMP)](https://github.com/kyleisah/Klipper-Adaptive-Meshing-Purging) - Smart_Park is used in `PRINT_START`
+- [KOMB](https://github.com/TmRxJD/KOMB) nozzle brushing macro - installed in `KOMB/`, not enabled yet
+- [Filament dryer macro](https://gist.github.com/NameOfTheDragon/e579295549aaa19b3f41ae07b8f3cbd6#file-filament_dryer-cfg) - `DRY_ABS` = bed 95 C for 5 h (spool on a spacer, door slightly open)
+- Crowsnest, Moonraker-timelapse, Sonar, KlipperScreen
 
 ## Printed Mods
 - [Orbitu for Stealthburner Orbiter extruder](https://github.com/Saccco/VoronUsers/tree/master/printer_mods/Saccco/Orbitu)
+- Planned: [Voron Stealthburner Rapido UHF](https://www.printables.com/model/1272320-voron-stealthburner-rapido-uhf) (4010 hotend fan version)
 
+## Maintenance log
+
+### 2026-11-13 - Clog investigation
+Symptom: clogs high up in the hotend, appearing "after a while", not at the same point every time.
+
+Findings:
+- **Root cause: the hotend fan was dead.** Cheap 2-wire sleeve-bearing 4010 (CAIZHU). 24 V measured at the fan with the port on, fan does not spin. Sleeve bearings wear out quickly in a ~60 C chamber, so the fan most likely slowed down over time, causing heat creep.
+- Orbiter drive gears were packed with ground filament (extruder slipping against the blockage).
+- Burnt ABS in the Rapido core and charred specks on the ceramic: leak between nozzle and heatbreak. Hot-tighten the nozzle at 250 C.
+- Config history: `pressure_advance` was 0.3546 (10x too high) from 2025-06-17 to 2025-06-25. That week had ~15 failed prints and probably started the heatbreak contamination.
+- Heatbreak cleaned with cold pulls; no clear evidence of scratches.
+- Cura asks for up to ~22 mm3/s (p90) at 240 C with 300 mm/s infill, which is too much for this setup.
+
+Config changes (backup of the old files kept locally):
+- Extruder `run_current` 0.5 -> 0.65
+- `PRINT_END` retract 5 mm -> 1.5 mm
+- `UNLOAD_FILAMENT` now forms a tip before pulling out
+- `DRY_ABS` bed 65 C / 4 h -> 95 C / 5 h
+- Removed duplicate `sensor_type` in `[temperature_sensor RPi_4B]`
+- Added `fan_upgrade.cfg` (inactive)
+
+## TODO
+- [ ] Fit new fans, enable `fan_upgrade.cfg`, test fans and watchdog
+- [ ] Fix the Klipper CPU pinning (see Extras - the override file is broken)
+- [ ] Bed `max_power` 0.6 -> 1.0 (allowed with the 25 A SSR and 750 W heater) + bed PID at 110 C
+- [ ] Belt tension with the FYSETC gauge, then input shaper (has never been enabled)
+- [ ] Adaptive mesh: `BED_MESH_CALIBRATE ADAPTIVE=1`
+- [ ] Calibrate extruder `rotation_distance` (Cura flow is set to 92 % to hide it), then pressure advance and max volumetric flow
+- [ ] Slicer: lower speeds to match the measured max flow, ABS at 250 C (consider OrcaSlicer for built-in calibration tests)
+- [ ] Verify which CAN module is used and the MCP2515 crystal (12 MHz expected); CAN shows rx errors
+- [ ] UHF toolhead + CNC Tap V2 + new CAN cable + nozzle brush/KOMB in one rebuild
 
 ## Extras <BR>
 - [Make Klipper run on a single core for itself](https://canbus.esoterical.online/troubleshooting/timeout_during_homing_probing.html#:~:text=Go%20through%20the%20steps%20in%20reverse%20order%20%28re-enable,the%20limits%20of%20what%20your%20Pi%20can%20handle)
+  - **Currently not working:** `/etc/systemd/system/klipper.service.d/override.conf` has the header `service]` instead of `[Service]`, so `CPUAffinity=3` is ignored. Fix:
+    ```bash
+    sudo sed -i 's/^service]$/[Service]/' /etc/systemd/system/klipper.service.d/override.conf
+    sudo systemctl daemon-reload && sudo systemctl restart klipper
+    systemctl show klipper -p CPUAffinity   # should print CPUAffinity=3
+    ```
+  - Optional: add `isolcpus=3` to `/boot/cmdline.txt` so nothing else runs on core 3.
 
 CANbus
 - Use ```ip -s link show can0``` to show can traffic
