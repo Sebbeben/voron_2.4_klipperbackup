@@ -97,6 +97,7 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 - [ ] Re-check CAN `rx_over_errors` after a long run / first print (should stay at 0)
 - [ ] Import the Orca profiles on the PC and check them
 - [ ] Verify the Pi cam works right after the next Pi reboot (crowsnest boot delay, see Done)
+- [x] OS migration plan (Bullseye EOL -> MainsailOS v3 / Trixie on a new SD card): `printer_data/config/OS_MIGRATION.md`, system files in `printer_data/config/system/`
 
 ### On site - power OFF
 - [ ] USB cam (UICPAL OV5648, LED + mic on board): plug into the Pi, then read `lsusb -v` / `v4l2-ctl --list-ctrls` / `arecord -l` to find the LED control (likely a UVC extension unit) and test the mic. Add as cam 2 in crowsnest
@@ -118,8 +119,13 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 - [ ] Enable `heatsoak.cfg` + `print_start_v2.cfg` (rename old macro to `PRINT_START_OLD`), test with an ABS print
 
 ### Rebuild (after the printer prints reliably again)
+- [ ] OS migration on a new SD card (`OS_MIGRATION.md`), before reflashing the MCUs
 - [ ] Print parts: Stealthburner Rapido UHF (4010 version), wide-mouth 5015 duct, brush mount
 - [ ] UHF toolhead + CNC Tap V2 + shielded CAN cable + HoneyBadger 5015 + nozzle brush/KOMB
+  - Config after the swap (Tap config itself stays - same probe on `SB2040:gpio28`):
+    `QUERY_PROBE` open/triggered by hand (if inverted: `pin: ^!SB2040:gpio28`), `PROBE_ACCURACY` (range < 0.01),
+    `Z_ENDSTOP_CALIBRATE` / new `z_offset`, hotend `PID_CALIBRATE` at 250 C, enable `fan_upgrade.cfg`,
+    measure brush position for KOMB, re-run pressure advance + max flow (UHF melts more)
 - [ ] Spider: permanent USB cable + Katapult so it can be flashed from the Pi (FLASHING.md option A)
 - [ ] Reflash Spider and SB2040 firmware to the current Klipper version (canserial buffer fix)
 - [ ] If CAN errors remain: USB-CAN adapter (Mellow UTOC / BTT U2C) instead of the MCP2515 HAT
