@@ -16,29 +16,32 @@ Note: `~/klipper/.config` is currently for an **STM32G474** (another board) and
 owned by root. Keep one saved config per board (see below) so this cannot be
 mixed up.
 
-## Saved build configs (one-time)
+## Saved build configs and pre-built firmware
+Build configs (backed up with the config repo):
+- `~/printer_data/config/firmware/config.sb2040` - RP2040, 16 KiB bootloader, CAN gpio4/gpio5, 1 Mbit
+- `~/printer_data/config/firmware/config.spider` - STM32F446, 32 KiB bootloader (FYSETC), 12 MHz crystal, USART1 PA10/PA9, 250000 baud
+
+Pre-built on 2026-11-13 from Klipper v0.13.0-827-g29d4ec2d6 (same version as the host):
+`~/firmware_builds/v0.13.0-827-g29d4ec2d6/` with `sb2040_klipper.bin`,
+`spider_klipper.bin`, `firmware.bin` (= Spider, named for the SD card) and `SHA256SUMS`.
+Only use these if the host Klipper is still on that version (`git -C ~/klipper describe`);
+otherwise rebuild:
 ```bash
-sudo chown voron:voron ~/klipper/.config
 cd ~/klipper
-make menuconfig KCONFIG_CONFIG=config.sb2040
-#   Micro-controller: Raspberry Pi RP2040/RP235x
-#   Bootloader offset: 16KiB bootloader
-#   Communication interface: CAN bus  (CAN RX gpio4, CAN TX gpio5)
-#   CAN bus speed: 1000000
-make menuconfig KCONFIG_CONFIG=config.spider
-#   Micro-controller: STMicroelectronics STM32, Processor: STM32F446
-#   Bootloader offset: 32KiB bootloader (FYSETC)   <- or Katapult offset, see option A
-#   Clock reference: 12 MHz crystal
-#   Communication interface: Serial (on USART1 PA10/PA9)   <- or USB, see option A
-#   Baud rate: 250000
+F=~/printer_data/config/firmware
+make clean OUT=out_sb2040/ && make -j3 KCONFIG_CONFIG=$F/config.sb2040 OUT=out_sb2040/
+make clean OUT=out_spider/ && make -j3 KCONFIG_CONFIG=$F/config.spider OUT=out_spider/
+# To change options: make menuconfig KCONFIG_CONFIG=$F/config.<board>
 ```
+The separate `OUT=` directories keep `~/klipper/.config` (STM32G474, another
+board, owned by root) and `~/klipper/out/` untouched. Delete the `out_*`
+directories afterwards so Moonraker does not report the klipper repo as dirty.
 
 ## SB2040 - flash over CAN (works today)
 ```bash
 sudo systemctl stop klipper
 cd ~/klipper
-make clean KCONFIG_CONFIG=config.sb2040 && make KCONFIG_CONFIG=config.sb2040 -j4
-python3 ~/CanBoot/scripts/flash_can.py -i can0 -u ea913f6d2453 -f ~/klipper/out/klipper.bin
+python3 ~/CanBoot/scripts/flash_can.py -i can0 -u ea913f6d2453 -f ~/firmware_builds/v0.13.0-827-g29d4ec2d6/sb2040_klipper.bin
 python3 ~/CanBoot/scripts/flash_can.py -i can0 -q   # Klipper should answer again with the same uuid
 sudo systemctl start klipper
 ```
@@ -85,7 +88,7 @@ check on site.
 ## Order on flash day
 1. Printer idle, heaters off, Klipper stopped.
 2. SB2040 over CAN.
-3. Spider (option A once set up, otherwise SD card: copy `out/klipper.bin` as
+3. Spider (option A once set up, otherwise SD card: copy the pre-built
    `firmware.bin` to a FAT32 SD card, insert, power-cycle; it is renamed to
    `firmware.cur` when done).
 4. Start Klipper and check that both MCUs report the new version
