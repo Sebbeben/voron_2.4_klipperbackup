@@ -83,16 +83,17 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 
 ### Done 2026-11-13
 - [x] Klipper CPU pinning fixed (`[Service]` header) - Klipper runs on core 3
-- [x] MCP2515 SPI clock 2 MHz -> 10 MHz in `/boot/config.txt` (active after reboot)
+- [x] MCP2515 SPI clock 2 MHz -> 10 MHz in `/boot/config.txt` - after reboot: 0 `rx_over_errors` (was ~240-310/h at 2 MHz)
 - [x] Software updated: Klipper v0.13.0-827, Moonraker v0.11, Mainsail v2.19, Crowsnest v4.2, klipper-backup, Sonar, KAMP (MCU firmware still v0.13.0-112/120 - works)
 - [x] Adaptive mesh verified: already active via KAMP (`exclude_object` + Moonraker object processing)
 - [x] KOMB include path fixed (still commented out), duplicate `KOMB.cfg` removed
+- [x] Moonraker database backed up daily (03:30) by `moonraker-db-backup.timer` (systemd) via klipper-backup
+- [x] OrcaSlicer profiles in `printer_data/config/orca_profiles/` (printer, process, ABS/ASA/PLA/PETG/TPU/PA/POM)
 - [x] Prepared, not active: `homing_v2.cfg`, `load_unload_filament_v2.cfg`, `heatsoak.cfg`
 
 ### Remote (Claude, no motion needed)
-- [ ] Reboot the Pi, then compare CAN `rx_over_errors` (baseline ~310/h at 2 MHz SPI)
-- [ ] OrcaSlicer profiles: printer + ABS, ASA, PLA, PETG, TPU, PA (nylon), POM + process
-- [ ] Moonraker database backup in klipper-backup (needs approval: touches `.env`)
+- [ ] Re-check CAN `rx_over_errors` after a long run / first print (should stay at 0)
+- [ ] Import the Orca profiles on the PC and check them
 
 ### On site - power OFF
 - [ ] Check the X rail is **MGN12H** (required for CNC Tap V2)
