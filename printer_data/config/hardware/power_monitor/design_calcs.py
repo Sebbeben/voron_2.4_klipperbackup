@@ -42,7 +42,7 @@ hdr("1. INA3221 channels: range, resolution, shunt power, offset")
 VBUS24 = 24.0
 chans = [  # name, shunt ohm, expected max A, fuse A (None = no fuse on board), vbus
     ("U1.1 24 V input", 0.010, 8.5, None, 24),
-    ("U1.2 Spider", 0.010, 7.0, 10, 24),
+    ("U1.2 Spider", 0.005, 7.0, 10, 24),
     ("U1.3 SB2040", 0.020, 3.5, 5, 24),
     ("U2.1 chamber fans", 0.050, 1.5, 3, 24),
     ("U2.2 Nevermore", 0.050, 1.5, 3, 24),
@@ -51,16 +51,20 @@ chans = [  # name, shunt ohm, expected max A, fuse A (None = no fuse on board), 
     ("U3.2 5 V input", 0.010, 4.0, None, 5),
     ("U3.3 Pi 5 V", 0.020, 3.5, 5, 5),
 ]
-print(f"{'channel':20s} {'Rsh':>6s} {'FS A':>6s} {'LSB mA':>7s} {'Pmax W':>7s} {'P@fuse W':>9s} {'Vos max mA':>10s}")
+# ATM mini fuse (Littelfuse): 110 % holds >= 100 h, 135 % opens in 0.75-1800 s.
+print(f"{'channel':20s} {'Rsh':>6s} {'FS A':>6s} {'LSB mA':>7s} {'Pmax W':>7s} {'P@1.1xF':>8s} {'P@1.35xF':>9s} {'Vos max mA':>10s}")
 for name, r, imax, fuse, vb in chans:
     fs = DS["ina_vsh_fs"] / r
     lsb = DS["ina_vsh_lsb"] / r * 1e3
     p = imax ** 2 * r
-    pf = (fuse ** 2 * r) if fuse else float("nan")
+    pf1 = ((1.1 * fuse) ** 2 * r) if fuse else float("nan")
+    pf2 = ((1.35 * fuse) ** 2 * r) if fuse else float("nan")
     vos = DS["ina_vos_max"] / r * 1e3
-    print(f"{name:20s} {r*1e3:5.0f}m {fs:6.1f} {lsb:7.1f} {p:7.2f} {pf:9.2f} {vos:10.1f}")
-print("All 2512 shunts must be rated >= 1 W (10 mOhm: >= 2 W, 1 W at 8.5 A is 72 % load).")
-print("Note: a fuse lets ~1.35x its rating through for a long time, P@fuse is the real worst case.")
+    print(f"{name:20s} {r*1e3:5.0f}m {fs:6.1f} {lsb:7.1f} {p:7.2f} {pf1:8.2f} {pf2:9.2f} {vos:10.1f}")
+print("All shunts are 2512 2 W. Worst case is 1.35x the fuse rating for up to 30 min (ATM curve):")
+print("Spider 10 A fuse on 10 mOhm would be 1.82 W (91 %) -> RS2 = 5 mOhm: 0.91 W (46 %).")
+print("24 V input (no fuse): LRS-200-24 OCP up to ~11.9 A -> 1.42 W on 10 mOhm (71 %), short-term only.")
+print("Note: 1.1x = may flow indefinitely, 1.35x = may flow up to 30 min before the fuse opens.")
 
 hdr("2. INA3221 input filter resistor error (IN- sinks Vbus/670k extra)")
 for rf in (10.0, 1.0):
@@ -137,13 +141,20 @@ print("Adapter loop current ~0.1 mA flows adapter -> R72 -> R73 -> VBIAS -> adap
 print("it does not pass through the bias divider, so no 50 Hz ripple is injected into the CT channels.")
 print("Same for the CTs: each pair returns to VBIAS, burden current stays on the CT board.")
 
-hdr("9. ADC front end (1k + 10 nF C0G, BAV99 clamps)")
-fc = 1 / (2 * math.pi * 1e3 * 10e-9)
-ph = math.degrees(math.atan(2 * math.pi * 50 * 1e3 * 10e-9))
+hdr("9. ADC front end (2.2k + 10 nF C0G, BAV99 clamps)")
+RAA = 2.2e3
+fc = 1 / (2 * math.pi * RAA * 10e-9)
+ph = math.degrees(math.atan(2 * math.pi * 50 * RAA * 10e-9))
 print(f"fc = {fc/1e3:.1f} kHz, phase at 50 Hz = {ph:.2f} deg (identical on all channels -> cancels in V*I)")
-print(f"Charge sharing: 10 nF vs ~5 pF ADC sample cap -> {5e-12/10e-9*100:.2f} % kick, recovers via 1k in <1 us")
-vf = (9.2 - 1.65 - 3.3 - 0.8) / 1e3
-print(f"Fault: CT TVS at 9.2 V -> BAV99 clamp current through 1k = {vf*1e3:.1f} mA into +3V3_MCU (MCU pin < 5 mA) OK")
+print(f"Charge sharing: 10 nF vs ~5 pF ADC sample cap -> {5e-12/10e-9*100:.2f} % kick, recovers via 2.2k in ~1 us")
+# CT_R sits at VBIAS, so the clamped CT_S node swings to VBIAS +- 9.2 V (SMAJ5.0CA VC).
+for rs in (1e3, RAA):
+    vp = (1.65 + 9.2 - 3.3 - 0.8) / rs
+    vn = (9.2 - 1.65 - 0.8) / rs
+    print(f"Fault: CT TVS at 9.2 V, {rs/1e3:.1f}k series: +{vp*1e3:.2f} mA into +3V3_MCU, -{vn*1e3:.2f} mA from GND via BAV99")
+print("All CT/V ADC pins are FT_a (PA0, PA1, PA7, PB0, PB1; DS12232 table 12): no positive injection,")
+print("negative injection limit -5 mA. PA5 (TT_a, 0 mA positive injection) is no longer used.")
+print("This only happens at ~91 A primary (SMAJ conduction), i.e. a mains short.")
 print("RJ45 unplugged: CTx_S would float -> add 100k CTx_S -> VBIAS on the main board (reads 0 A).")
 print("  Load on the burden: 49.9 ohm || 100k = 0.05 % low -> calibrated out.")
 

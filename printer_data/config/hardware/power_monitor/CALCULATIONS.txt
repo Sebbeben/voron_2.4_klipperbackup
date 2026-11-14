@@ -1,18 +1,20 @@
 
 1. INA3221 channels: range, resolution, shunt power, offset
 -----------------------------------------------------------
-channel                 Rsh   FS A  LSB mA  Pmax W  P@fuse W Vos max mA
-U1.1 24 V input         10m   16.4     4.0    0.72       nan        8.0
-U1.2 Spider             10m   16.4     4.0    0.49      1.00        8.0
-U1.3 SB2040             20m    8.2     2.0    0.24      0.50        4.0
-U2.1 chamber fans       50m    3.3     0.8    0.11      0.45        1.6
-U2.2 Nevermore          50m    3.3     0.8    0.11      0.45        1.6
-U2.3 lights             20m    8.2     2.0    0.08      0.18        4.0
-U3.1 spare 24 V         20m    8.2     2.0    0.08      0.18        4.0
-U3.2 5 V input          10m   16.4     4.0    0.16       nan        8.0
-U3.3 Pi 5 V             20m    8.2     2.0    0.24      0.50        4.0
-All 2512 shunts must be rated >= 1 W (10 mOhm: >= 2 W, 1 W at 8.5 A is 72 % load).
-Note: a fuse lets ~1.35x its rating through for a long time, P@fuse is the real worst case.
+channel                 Rsh   FS A  LSB mA  Pmax W  P@1.1xF  P@1.35xF Vos max mA
+U1.1 24 V input         10m   16.4     4.0    0.72      nan       nan        8.0
+U1.2 Spider              5m   32.8     8.0    0.24     0.60      0.91       16.0
+U1.3 SB2040             20m    8.2     2.0    0.24     0.60      0.91        4.0
+U2.1 chamber fans       50m    3.3     0.8    0.11     0.54      0.82        1.6
+U2.2 Nevermore          50m    3.3     0.8    0.11     0.54      0.82        1.6
+U2.3 lights             20m    8.2     2.0    0.08     0.22      0.33        4.0
+U3.1 spare 24 V         20m    8.2     2.0    0.08     0.22      0.33        4.0
+U3.2 5 V input          10m   16.4     4.0    0.16      nan       nan        8.0
+U3.3 Pi 5 V             20m    8.2     2.0    0.24     0.60      0.91        4.0
+All shunts are 2512 2 W. Worst case is 1.35x the fuse rating for up to 30 min (ATM curve):
+Spider 10 A fuse on 10 mOhm would be 1.82 W (91 %) -> RS2 = 5 mOhm: 0.91 W (46 %).
+24 V input (no fuse): LRS-200-24 OCP up to ~11.9 A -> 1.42 W on 10 mOhm (71 %), short-term only.
+Note: 1.1x = may flow indefinitely, 1.35x = may flow up to 30 min before the fuse opens.
 
 2. INA3221 input filter resistor error (IN- sinks Vbus/670k extra)
 ------------------------------------------------------------------
@@ -78,11 +80,15 @@ Adapter loop current ~0.1 mA flows adapter -> R72 -> R73 -> VBIAS -> adapter (J2
 it does not pass through the bias divider, so no 50 Hz ripple is injected into the CT channels.
 Same for the CTs: each pair returns to VBIAS, burden current stays on the CT board.
 
-9. ADC front end (1k + 10 nF C0G, BAV99 clamps)
------------------------------------------------
-fc = 15.9 kHz, phase at 50 Hz = 0.18 deg (identical on all channels -> cancels in V*I)
-Charge sharing: 10 nF vs ~5 pF ADC sample cap -> 0.05 % kick, recovers via 1k in <1 us
-Fault: CT TVS at 9.2 V -> BAV99 clamp current through 1k = 3.4 mA into +3V3_MCU (MCU pin < 5 mA) OK
+9. ADC front end (2.2k + 10 nF C0G, BAV99 clamps)
+-------------------------------------------------
+fc = 7.2 kHz, phase at 50 Hz = 0.40 deg (identical on all channels -> cancels in V*I)
+Charge sharing: 10 nF vs ~5 pF ADC sample cap -> 0.05 % kick, recovers via 2.2k in ~1 us
+Fault: CT TVS at 9.2 V, 1.0k series: +6.75 mA into +3V3_MCU, -6.75 mA from GND via BAV99
+Fault: CT TVS at 9.2 V, 2.2k series: +3.07 mA into +3V3_MCU, -3.07 mA from GND via BAV99
+All CT/V ADC pins are FT_a (PA0, PA1, PA7, PB0, PB1; DS12232 table 12): no positive injection,
+negative injection limit -5 mA. PA5 (TT_a, 0 mA positive injection) is no longer used.
+This only happens at ~91 A primary (SMAJ conduction), i.e. a mains short.
 RJ45 unplugged: CTx_S would float -> add 100k CTx_S -> VBIAS on the main board (reads 0 A).
   Load on the burden: 49.9 ohm || 100k = 0.05 % low -> calibrated out.
 
