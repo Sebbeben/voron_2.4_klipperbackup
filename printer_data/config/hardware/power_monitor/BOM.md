@@ -92,7 +92,7 @@ PV and TC outputs: not used, left unconnected (open-drain).
 ## B. Cables / mounting
 | Qty | Part | Note |
 |---|---|---|
-| 1 | 6-wire JST-XH cable to the Pi GPIO header | 3V3 (pin 1), GND (pin 9), SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), CRITICAL + WARNING to free GPIOs or a Spider input |
+| 1 | 6-wire JST-XH cable to the Pi GPIO header | GND (pin 9), SDA GPIO2 (pin 3), SCL GPIO3 (pin 5), CRITICAL + WARNING to free GPIOs or a Spider input; 3V3 pin left unconnected (board has its own LDO, both sides 3.3 V logic) |
 | - | Silicone wire 14 AWG (24 V input, Spider), 18 AWG (others) | |
 | 1 | DIN-rail holder or printed mount for the electronics bay | |
 
