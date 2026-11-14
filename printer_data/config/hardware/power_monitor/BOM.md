@@ -9,12 +9,15 @@ the LCSC numbers before ordering (JLCPCB assembly uses them).
   24 V in -> measured -> internal bus -> 6 fused, individually measured
   outputs. Same for 5 V. Replaces the current distribution terminals.
 - 3 x TI INA3221 = 9 channels, high side, on one I2C bus.
-- Read directly by the Raspberry Pi over I2C (`dtparam=i2c_arm=on` is
-  already set). No MCU. Logic powered from the Pi's 3.3 V.
+- 4 x PCB-mounted current transformers for the mains loads, sampled by an
+  RP2040 on the board (section C).
+- Read by the Raspberry Pi over I2C (`dtparam=i2c_arm=on` is already set):
+  INA3221 at 0x40-0x42, RP2040 as I2C target at 0x50. Board 3.3 V from its
+  own LDO (fed from the 5 V input).
 - Sum check: 24 V input vs. sum of the 24 V outputs -> detects a fault on
   the board / measurement error.
-- Mains (bed, chamber heater) is NOT on this board: separate, isolated
-  PZEM-004T v3 modules with split-core CTs (section C).
+- Mains is measured only through the isolated CTs - no 230 V copper on
+  the board.
 
 ## Channel map (proposal - adjust before layout)
 INA3221 shunt full scale 163.84 mV, LSB 40 uV.
@@ -93,12 +96,58 @@ PV and TC outputs: not used, left unconnected (open-drain).
 | - | Silicone wire 14 AWG (24 V input, Spider), 18 AWG (others) | |
 | 1 | DIN-rail holder or printed mount for the electronics bay | |
 
-## C. Mains measurement (separate, isolated modules - no DIY mains PCB)
-| Qty | Part | Note |
-|---|---|---|
-| 2 | PZEM-004T v3.0, **100 A version with split-core CT** | V, A, W, kWh, PF. One for the bed, one for the chamber heater. Modbus-RTU over TTL, opto-isolated |
-| 1 | USB-TTL adapter (CP2102 or CH340, 5 V TTL) | Both PZEMs on one bus with different Modbus addresses (set one at a time). The Pi UART is taken by the Spider |
-| - | 230 V wiring for the PZEM voltage input | Fused, by someone used to mains wiring |
+## C. Mains current: 4 x PCB-mounted current transformers + RP2040
+Replaces the PZEM modules. **No mains copper on the PCB**: the mains wire
+is threaded through the hole of each CT; only the isolated secondary is
+soldered to the board.
+
+Why an MCU: a CT gives a 50 Hz AC signal. RMS needs fast sampling
+(>= 2 kHz); the INA3221 cannot do that. The RP2040 has exactly 4 ADC inputs
+(GPIO26-29), computes RMS current per channel and acts as an **I2C target
+(0x50) on the same bus** as the INA3221s, so the Pi reads everything over
+one bus. Power ~= 230 V x Irms (heaters are resistive, PF ~= 1). Optional
+real voltage/power: an external 9 V AC-AC wall adapter on a 5th ADC path
+(OpenEnergyMonitor emonTx method) - not in rev 0.
+
+| CT ch | Mains load | Expected max | Burden | Signal at max |
+|---|---|---|---|---|
+| CT1 | Printer total (mains in) | ~6 A | 100 Ohm | 0.60 V rms |
+| CT2 | Bed heater (750 W) | 3.3 A | 150 Ohm | 0.50 V rms |
+| CT3 | Chamber heater (<= 500 W, cold inrush higher) | 2.2 A | 150 Ohm | 0.33 V rms |
+| CT4 | Spare (LRS-200 primary, Pi PSU, ...) | - | 150 Ohm | - |
+
+Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
+
+| Ref | Qty | Part | Spec | Package | LCSC |
+|---|---|---|---|---|---|
+| T1-T4 | 4 | Current transformer, PCB mount, **wire-through hole** | ZMCT103C type: 5 A : 5 mA (1000:1), >= 3 kV isolation, hole >= 5 mm | THT | tbd |
+| R30-R33 | 4 | Burden resistor, right at the CT pins (CT secondary must never be open) | 100 / 150 Ohm, 0.1 %, 0.25 W | 1206 | tbd |
+| D10-D13 | 4 | Clamp across each burden (protects ADC on inrush / fault) | BAV99 or TVS 3.3 V | SOT-23 | tbd |
+| R34-R41 | 8 | Bias divider for 1.65 V (shared or per channel) | 10 kOhm, 1 % | 0603 | tbd |
+| C30-C33 | 4 | Bias decoupling | 10 uF, X5R | 0805 | tbd |
+| R42-R45, C34-C37 | 4+4 | Anti-alias RC to each ADC pin | 1 kOhm + 10 nF | 0603 | tbd |
+| U10 | 1 | MCU | RP2040 | QFN-56 | tbd |
+| U11 | 1 | QSPI flash | W25Q16JVUXIQ (2 MB) or W25Q128 | USON-8 | tbd |
+| Y1 | 1 | Crystal | 12 MHz, 15-20 pF load | 3225 | tbd |
+| C40-C41 | 2 | Crystal load caps | per crystal datasheet (~15-27 pF) | 0603 | tbd |
+| C42-C52 | ~11 | RP2040 decoupling (IOVDD, DVDD, ADC_AVDD, USB_VDD, VREG) | 100 nF + 1 uF + 10 uF per datasheet | 0603/0805 | tbd |
+| U12 | 1 | LDO 5 V -> 3.3 V (board 3V3 for MCU + INAs, cleaner ADC) | AP2112K-3.3 or similar, >= 300 mA | SOT-23-5 | tbd |
+| FB1 | 1 | Ferrite bead + 1 uF for ADC_AVDD | 600 Ohm @ 100 MHz | 0603 | tbd |
+| SW1 | 1 | BOOTSEL button | tactile | SMD | tbd |
+| J11 | 1 | USB-C (flashing / optional USB serial to the Pi) | 16-pin USB 2.0 + 2 x 5.1 k CC resistors, 27 Ohm series | SMD | tbd |
+| J12 | 1 | SWD header | 3-pin 2.54 mm (SWDIO, SWCLK, GND) | THT | tbd |
+| LED10 | 1 | Status LED + resistor | green | 0603 | tbd |
+
+### CT layout and safety rules
+- CTs on the board edge, mains wires pass through from outside and are
+  strain-relieved (cable ties / printed clamp) so they cannot touch the
+  low-voltage side.
+- Use **double-insulated** mains wire through the CT (the CT's isolation
+  rating assumes intact wire insulation).
+- Burden resistor directly at the CT pins - an open CT secondary can
+  produce high voltage.
+- Keep a clear gap (no copper, or a routed slot) around the CT holes.
+- 230 V wiring done by someone used to mains wiring.
 
 ## D. Software (to do)
 - Python service on the Pi: reads the 3 INA3221 (0x40-0x42) and the PZEMs
