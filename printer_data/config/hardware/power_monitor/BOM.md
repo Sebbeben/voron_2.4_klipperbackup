@@ -211,7 +211,7 @@ A0->SDA (0x42). 0x43 free. INA PV and TC outputs unused (open-drain, NC).
   and Mainsail.
 - Checks: 24 V input vs. sum of outputs; fan channel current too low ->
   warning; bed/chamber current while Klipper reports the heater off -> stuck
-  SSR -> cut power via the Shelly relay.
+  SSR -> open the heater safety relay/contactor (normally open, actively held on).
 
 ## Alert handling - all options available
 CRITICAL and WARNING are open-drain, wired-OR lines, so they can go to
@@ -223,7 +223,7 @@ used is chosen in software/config, not by rewiring:
 | INA3221 critical limit (per channel, hardware comparator, ~1 ms) | CRITICAL | Spider input (J11) **and** Pi GPIO (J10) | Klipper `[gcode_button]` on the Spider pin: `PAUSE`, `M112` (emergency stop) or log only |
 | INA3221 warning limit (averaged) | WARNING | Pi GPIO (J10) | Pi service: log / Mainsail notification / Mobileraker push |
 | STM32 mains checks (overcurrent, bed/chamber current outside expected range) | CRITICAL (open-drain GPIO) | same as above | same as above - works even if the Pi service is not running |
-| Pi service (stuck SSR: current while Klipper reports heater off) | - (software) | Moonraker + Shelly | cut mains via the Shelly relay, `M112` via Moonraker |
+| Pi service (stuck SSR: current while Klipper reports heater off) | - (software) | Moonraker `[power]` (gpio) | open the heater safety relay/contactor, `M112` via Moonraker |
 
 Limits for the INA critical/warning comparators and the STM32 checks are
 written over I2C by the Pi service at start-up (stored in a config file),
@@ -237,10 +237,11 @@ a dedicated 5 V supply (e.g. Mean Well LRS-35-5 / LRS-50-5 or a 24 V -> 5 V
 the Spider's regulator and avoids Pi brown-outs.
 
 ## Decisions
+- 2026-11-14: no Shelly. Heater cut-off is a mechanical relay/contactor (NO, coil held on, cuts only the heater supply), not an SSR - an SSR usually fails shorted.
 - 2026-11-14: mains voltage measured via AC-AC adapter (230 V / 50 Hz).
 - 2026-11-14: two boards (CT board + main board), STM32G071 instead of RP2350B.
 - 2026-11-14: JLCPCB assembly (prefer Basic parts).
-- 2026-11-14: all alert reactions supported (log / pause / emergency stop / Shelly cut), chosen in config.
+- 2026-11-14: all alert reactions supported (log / pause / emergency stop / heater relay cut), chosen in config.
 
 ## Open
 - Channel map: which loads are actually wired separately today (check the
