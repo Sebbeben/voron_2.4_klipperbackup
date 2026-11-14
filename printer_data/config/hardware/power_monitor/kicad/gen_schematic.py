@@ -198,7 +198,7 @@ def main_board():
               "3x INA3221 (24 V / 5 V distribution) + STM32G071 mains V/I/W, I2C to the Pi")
 
     # ---- Block A: inputs, protection, flags -------------------------------
-    X, Y = 25.4, 38.1
+    X, Y = 40.64, 38.1
     s.text("INPUTS + PROTECTION", X, Y - 15)
     s.part("Connector:Screw_Terminal_01x02", "J1", "24V IN", X, Y, {"1": "24V_IN", "2": "GND"},
            FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P", note="24 V from LRS-200-24 (max ~8.5 A), 18 A terminal")
@@ -276,7 +276,7 @@ def main_board():
           "UNI-ROYAL 0603WAF1002T5E" if rled == "10k" else "UNI-ROYAL 0603WAF1001T5E")
         s.part("Device:LED", "LEDF%d" % (i + 1), "red", x + 12.7, by + 22.86, {"2": "LEDF%d" % (i + 1), "1": dst},
                FP_LED, "C2286", "KENTO KT-0603R", note="Fuse blown indicator")
-        s.part("Connector:Screw_Terminal_01x02", j, jname, x + 30.48, by + 7.62, {"1": dst, "2": "GND"},
+        s.part("Connector:Screw_Terminal_01x02", j, jname, x + 40.64, by + 7.62, {"1": dst, "2": "GND"},
                FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P")
 
     # ---- Block D: MCU + 3V3 ------------------------------------------------
