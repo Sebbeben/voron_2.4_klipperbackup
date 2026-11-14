@@ -14,9 +14,10 @@ Changes made while drawing the schematic (2026-11-14):
   the only G071 LQFP symbol in the KiCad library, and 32 pins are enough.
   VDD = VDDA on this package -> one ferrite (FB1) feeds the whole MCU.
   Pin map: PA0 = V, PA1 / PB0 / PB1 / PA5 = CT1-CT4, PB6/PB7 = I2C1
-  SCL/SDA, PA8 = CRITICAL (open-drain), PB15 = status LED, PA13/PA14 = SWD,
-  PF2 = NRST. Pull-ups on PA3, PA10, PB9 (bootloader USART RX) and PA4
-  (SPI1 NSS). **Verify these against AN2606 and the datasheet before layout.**
+  SCL/SDA, PA8 = CRITICAL (open-drain), PB15 = status LED, PB8 = heater
+  relay enable, PA13/PA14 = SWD, PF2 = NRST. Pull-ups on PA3, PA10
+  (bootloader USART RX) and PA4 (SPI1 NSS). **Checked against AN2606 Rev 62
+  table 91** (see "Datasheet review" below).
 - Fuse holders: Keystone **3568** (mini blade only, LCSC C5249699) - has a
   KiCad footprint.
 - 24 V input terminal: same 5.08 mm 18 A terminal as the outputs (no 7.62 mm
@@ -43,10 +44,16 @@ Changes made while drawing the schematic (2026-11-14):
 
 | CT ch | Mains load | Expected max | Burden | Signal at max |
 |---|---|---|---|---|
-| CT1 | Printer total (mains in) | ~6 A | 100 Ohm | 0.60 V rms |
-| CT2 | Bed heater (750 W) | 3.3 A | 150 Ohm | 0.50 V rms |
-| CT3 | Chamber heater (<= 500 W, cold inrush higher) | 2.2 A | 150 Ohm | 0.33 V rms |
-| CT4 | Spare (LRS-200 primary, Pi PSU, ...) | - | 150 Ohm | - |
+| CT1 | Printer total (mains in) | ~6.3 A | 49.9 Ohm | 0.31 V rms |
+| CT2 | Bed heater (750 W) | 3.3 A | 49.9 Ohm | 0.17 V rms |
+| CT3 | Chamber heater (<= 500 W, cold inrush higher) | 2.2 A | 49.9 Ohm | 0.11 V rms |
+| CT4 | Spare (LRS-200 primary, Pi PSU, ...) | - | 49.9 Ohm | - |
+
+49.9 Ohm on all four: the ZMCT103C datasheet specifies accuracy (0.2 %),
+phase error (<= 15') and the 0-15 A linear range at a 50 Ohm burden. The
+first draft used 100/150 Ohm, which is outside the specified conditions.
+Clipping is at ~22 A rms, 1 ADC LSB = 16 mA, and the RMS over 800 samples
+resolves well below that (see CALCULATIONS.txt).
 
 | Ref | Qty | Part | Spec | Package | LCSC |
 |---|---|---|---|---|---|
