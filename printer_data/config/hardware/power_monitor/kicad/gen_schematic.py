@@ -168,6 +168,18 @@ SHUNT = {  # value -> (lcsc, mpn)
     "50m": ("C61904", "UNI-ROYAL MS122WF500MT4E"),
 }
 
+# Parts re-checked 2026-11-14 (stock + datasheet). (lcsc, mpn)
+P = {
+    "1R": ("C22936", "UNI-ROYAL 0603WAF100KT5E"),        # 1 ohm 0603 1 %
+    "120k": ("C25808", "UNI-ROYAL 0603WAF1203T5E"),      # 120k 0603 1 %
+    "100k": ("C25803", "UNI-ROYAL 0603WAF1003T5E"),      # 100k 0603 1 %
+    "100R": ("C22775", "UNI-ROYAL 0603WAF1000T5E"),      # 100 ohm 0603 1 %
+    "49R9": ("TBD", "49.9 ohm 1206 0.1 % 25 ppm"),
+    "AO3400A": ("C20917", "AOS AO3400A"),
+    "FLYBACK": ("TBD", "SS14"),
+    "F_COIL": ("TBD", "1 A SMD fuse 1206"),
+}
+
 def R(s, ref, val, x, y, a, b, lcsc="", mpn="", fp=FP_R0603, dnp=False, note=""):
     s.part("Device:R", ref, val, x, y, {"1": a, "2": b}, fp, lcsc, mpn, dnp, note)
 
@@ -248,9 +260,9 @@ def main_board():
             lc, mp = SHUNT[val]
             R(s, rs, val, bx, cy, hi, lo, lc, mp, FP_R2512,
               note="Current sense, Kelvin connection to the filter resistors")
-            R(s, "R%d" % rnum, "10", bx + 15.24, cy, hi, "%s_IN%dP" % (u, ch), "C22859", "UNI-ROYAL 0603WAF100JT5E",
+            R(s, "R%d" % rnum, "1", bx + 15.24, cy, hi, "%s_IN%dP" % (u, ch), *P["1R"],
               note="Input filter, Kelvin from shunt supply side")
-            R(s, "R%d" % (rnum + 1), "10", bx + 30.48, cy, lo, "%s_IN%dN" % (u, ch), "C22859", "UNI-ROYAL 0603WAF100JT5E",
+            R(s, "R%d" % (rnum + 1), "1", bx + 30.48, cy, lo, "%s_IN%dN" % (u, ch), *P["1R"],
               note="Input filter, Kelvin from shunt load side")
             C(s, "C%d" % cnum, "100n 50V", bx + 45.72, cy, "%s_IN%dP" % (u, ch), "%s_IN%dN" % (u, ch),
               "C14663", "YAGEO CC0603KRX7R9BB104", note="Differential input filter")
@@ -296,17 +308,19 @@ def main_board():
     mcu_nets = {
         "4": "+3V3_MCU", "5": "GND", "6": "NRST",
         "7": "ADC_V", "8": "ADC_CT1", "15": "ADC_CT2", "16": "ADC_CT3", "12": "ADC_CT4",
-        "11": "PA4_NSS", "10": "PA3_RX2", "21": "PA10_RX1", "1": "PB9_RX3",
+        "11": "PA4_NSS", "10": "PA3_RX2", "21": "PA10_RX1", "32": "HEATER_EN_MCU",
         "30": "SCL", "31": "SDA", "18": "CRITICAL", "17": "LED_STAT",
         "24": "SWDIO", "25": "SWCLK",
     }
     s.part("MCU_ST_STM32G0:STM32G071KBTxN", "U10", "STM32G071KBT6N", bx + 152.4, by + 15.24, mcu_nets,
            "Package_QFP:LQFP-32_7x7mm_P0.8mm", "C529349", "ST STM32G071KBT6N",
-           note="PA0=V, PA1/PB0/PB1/PA5=CT1-4 (avoid bootloader USART/SPI pins). Verify pins against AN2606 + datasheet")
+           note="PA0=V, PA1/PB0/PB1/PA5=CT1-4, PB6/PB7=I2C1 (= ROM bootloader I2C1, addr 0x51), PB8=heater relay enable")
     # bootloader pin pull-ups (G07x bootloader V11.3 issue) + NSS idle high
-    for i, net in enumerate(["PA3_RX2", "PA10_RX1", "PB9_RX3", "PA4_NSS"]):
+    # AN2606 Rev 62 table 91: bootloader USART RX = PA10 (USART1), PA3 (USART2), PC11 (USART3, not
+    # bonded on LQFP-32); SPI1 NSS = PA4. Pull them high so the bootloader only reacts to I2C1.
+    for i, net in enumerate(["PA3_RX2", "PA10_RX1", "PA4_NSS"]):
         R(s, "R%d" % (60 + i), "10k", bx + 203.2 + i * 12.7, by, "+3V3_MCU", net, "C25804", "UNI-ROYAL 0603WAF1002T5E",
-          note="Bootloader interface idle high (AN2606 / V11.3 issue) - verify pin list")
+          note="Bootloader USART RX / SPI1 NSS idle high (AN2606 Rev 62 table 91)")
     C(s, "C43", "100n", bx + 203.2, by + 35.56, "NRST", "GND", "C14663", "YAGEO CC0603KRX7R9BB104", note="NRST filter")
     s.part("Switch:SW_Push", "SW1", "RESET", bx + 223.52, by + 35.56, {"1": "NRST", "2": "GND"},
            "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "C318884", "XKB TS-1187A-B-A-B")
@@ -338,8 +352,13 @@ def main_board():
     s.part("Connector:Barrel_Jack", "J21", "AC 9V IN", bx, by + 63.5, {"1": "AC_A", "2": "VBIAS"},
            "Connector_BarrelJack:BarrelJack_Horizontal", "C3095117", "MPD EJ503A",
            note="9-12 V AC from a transformer-type AC-AC adapter (NOT DC). Check footprint vs part")
-    R(s, "R72", "100k 0.1%", bx + 30.48, by + 63.5, "AC_A", "V_SENSE", "C122538", "YAGEO RT0603BRD07100KL")
+    R(s, "R72", "120k", bx + 30.48, by + 63.5, "AC_A", "V_SENSE", *P["120k"],
+      note="Divider /13: 9 V AC nominal -> 1.0 V peak, worst case (unloaded adapter, mains +10 %) 1.38 V peak")
     R(s, "R73", "10k 0.1%", bx + 30.48, by + 86.36, "V_SENSE", "VBIAS", "C95204", "YAGEO RT0603BRD0710KL")
+    # CT input defined when the RJ45 cable is unplugged (reads 0 A instead of floating)
+    for i in range(4):
+        R(s, "R%d" % (79 + i), "100k", bx + 76.2 + i * 33.02, by + 12.7, "CT%d_S" % (i + 1), "VBIAS", *P["100k"],
+          note="Keeps the channel at VBIAS with the cable unplugged")
     # per channel: RC anti-alias + clamp
     chans = [("CT1_S", "ADC_CT1"), ("CT2_S", "ADC_CT2"), ("CT3_S", "ADC_CT3"), ("CT4_S", "ADC_CT4"), ("V_SENSE", "ADC_V")]
     for i, (src, adc) in enumerate(chans):
@@ -353,9 +372,9 @@ def main_board():
     bx, by = 330.2, 190.5
     s.text("PI I2C HEADER + ALERTS", bx, by - 15)
     s.part("Connector_Generic:Conn_01x06", "J10", "TO PI", bx, by + 7.62,
-           {"1": "GND", "2": "SDA", "3": "SCL", "4": "CRITICAL", "5": "WARNING", "6": None},
+           {"1": "GND", "2": "SDA", "3": "SCL", "4": "CRITICAL", "5": "WARNING", "6": "HEATER_EN_PI"},
            "Connector_JST:JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical", "C144397", "JST B6B-XH-A(LF)(SN)",
-           note="Pi: GND pin 9, SDA GPIO2 pin 3, SCL GPIO3 pin 5, alerts to free GPIOs")
+           note="Pi: GND pin 9, SDA GPIO2 pin 3, SCL GPIO3 pin 5, alerts + HEATER_EN_PI to free GPIOs (>= GPIO9: pulled low at boot)")
     s.part("Connector_Generic:Conn_01x02", "J11", "TO SPIDER INPUT", bx, by + 40.64,
            {"1": "CRITICAL", "2": "GND"}, "Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical", "", "JST B2B-XH-A",
            note="Open-drain CRITICAL to a Spider endstop input (Klipper gcode_button)")
@@ -372,6 +391,31 @@ def main_board():
     for i in range(4):
         s.part("Mechanical:MountingHole", "H%d" % (i + 1), "M3", bx + 101.6 + i * 15.24, by + 76.2, {}, FP_MH)
 
+    # ---- Block G: heater safety relay driver --------------------------------
+    # Coil is energised only while BOTH the STM32 (PB8) and the Pi (J10 pin 6) drive their
+    # enable high: two low-side MOSFETs in series. Reset / boot / crash / unplugged = coil off.
+    # The relay/contactor itself (NO contacts, cuts only the heater supply) sits off-board.
+    bx, by = 330.2, 304.8
+    s.text("HEATER SAFETY RELAY - coil on only if STM32 AND Pi enable (fail-safe, NO contacts)", bx, by - 15)
+    s.part("Device:Fuse", "F8", "1A", bx, by, {"1": "24V_BUS", "2": "RLY_V+"}, "Fuse:Fuse_1206_3216Metric",
+           *P["F_COIL"], note="Coil supply fuse")
+    s.part("Connector:Screw_Terminal_01x02", "J12", "HEATER RELAY COIL", bx + 25.4, by + 2.54,
+           {"1": "RLY_V+", "2": "RLY_COIL-"}, FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P",
+           note="24 V relay/contactor coil, <= 0.5 A")
+    s.part("Device:D", "D15", "SS14", bx + 50.8, by, {"1": "RLY_V+", "2": "RLY_COIL-"}, "Diode_SMD:D_SMA",
+           *P["FLYBACK"], note="Flyback across the coil")
+    R(s, "R87", "10k", bx + 66.04, by, "RLY_V+", "LED_RLY_A", "C25804", "UNI-ROYAL 0603WAF1002T5E")
+    s.part("Device:LED", "LED11", "green", bx + 66.04, by + 22.86, {"2": "LED_RLY_A", "1": "RLY_COIL-"},
+           FP_LED, "C12624", "KENTO KT-0603G", note="Relay energised")
+    s.part("Transistor_FET:AO3400A", "Q1", "AO3400A", bx + 25.4, by + 30.48,
+           {"1": "Q1_G", "2": "RLY_MID", "3": "RLY_COIL-"}, None, *P["AO3400A"], note="Enable from STM32 PB8")
+    s.part("Transistor_FET:AO3400A", "Q2", "AO3400A", bx + 25.4, by + 55.88,
+           {"1": "Q2_G", "2": "GND", "3": "RLY_MID"}, None, *P["AO3400A"], note="Enable from the Pi (J10 pin 6)")
+    R(s, "R83", "100", bx, by + 30.48, "HEATER_EN_MCU", "Q1_G", *P["100R"])
+    R(s, "R84", "100k", bx + 7.62, by + 40.64, "Q1_G", "GND", *P["100k"], note="Off while the MCU is in reset")
+    R(s, "R85", "100", bx, by + 55.88, "HEATER_EN_PI", "Q2_G", *P["100R"])
+    R(s, "R86", "100k", bx + 7.62, by + 66.04, "Q2_G", "GND", *P["100k"], note="Off with the Pi cable unplugged")
+
     s.write(os.path.join(HERE, "main_board.kicad_sch"))
     return s
 
@@ -382,17 +426,18 @@ def ct_board():
     s = Sheet("ct_board", "Power monitor - CT board", "A4",
               "4x wire-through CTs. NO mains copper: mains wires only pass through the CT holes")
     s.text("CT BOARD - mains wires pass THROUGH the CT holes (double insulated, strain relieved)", 15.24, 25.4, 2.0)
-    cts = [("T1", "R1", "100", "C728670", "YAGEO RT1206BRD07100RL", "CT1", "PRINTER TOTAL"),
-           ("T2", "R2", "150", "C857190", "YAGEO AT1206BRD07150RL", "CT2", "BED"),
-           ("T3", "R3", "150", "C857190", "YAGEO AT1206BRD07150RL", "CT3", "CHAMBER HEATER"),
-           ("T4", "R4", "150", "C857190", "YAGEO AT1206BRD07150RL", "CT4", "SPARE")]
+    # 49.9 ohm: the burden the ZMCT103C accuracy / phase / linearity specs are given at
+    cts = [("T1", "R1", "49.9", *P["49R9"], "CT1", "PRINTER TOTAL"),
+           ("T2", "R2", "49.9", *P["49R9"], "CT2", "BED"),
+           ("T3", "R3", "49.9", *P["49R9"], "CT3", "CHAMBER HEATER"),
+           ("T4", "R4", "49.9", *P["49R9"], "CT4", "SPARE")]
     pairs = {"CT1": ("1", "2"), "CT2": ("3", "6"), "CT3": ("4", "5"), "CT4": ("7", "8")}
     for i, (t, r, val, lc, mp, ct, name) in enumerate(cts):
         x, y = 30.48 + i * 55.88, 76.2
         s.text(name, x - 10.16, y - 17.78, 1.5)
         s.part("Device:Transformer_1P_1S", t, "ZMCT103C", x, y, {"1": None, "2": None, "3": ct + "_S", "4": ct + "_R"},
-               "", "C94571", "ZHE MING LANG XI ZMCT103C",
-               note="Primary = mains wire through the hole (pins 1-2 not connected). FOOTPRINT: custom, from ZMCT103C drawing")
+               "PowerMonitor:ZMCT103C", "C94571", "ZHE MING LANG XI ZMCT103C",
+               note="Primary = mains wire through the dia 5 mm hole (pins 1-2 not connected). Pad 3 = CT pin 1* (dot). All CTs same direction (P1* side = supply side)")
         R(s, r, val, x + 20.32, y + 15.24, ct + "_S", ct + "_R", lc, mp, FP_R1206,
           note="Burden directly at the CT pins - secondary must never be open")
         s.part("Diode:SMAJ5.0CA" if tvs_lib("SMAJ5.0CA") != "Device:D_TVS" else "Device:D_TVS",
