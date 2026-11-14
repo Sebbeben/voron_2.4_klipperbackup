@@ -1,0 +1,102 @@
+
+1. INA3221 channels: range, resolution, shunt power, offset
+-----------------------------------------------------------
+channel                 Rsh   FS A  LSB mA  Pmax W  P@fuse W Vos max mA
+U1.1 24 V input         10m   16.4     4.0    0.72       nan        8.0
+U1.2 Spider             10m   16.4     4.0    0.49      1.00        8.0
+U1.3 SB2040             20m    8.2     2.0    0.24      0.50        4.0
+U2.1 chamber fans       50m    3.3     0.8    0.11      0.45        1.6
+U2.2 Nevermore          50m    3.3     0.8    0.11      0.45        1.6
+U2.3 lights             20m    8.2     2.0    0.08      0.18        4.0
+U3.1 spare 24 V         20m    8.2     2.0    0.08      0.18        4.0
+U3.2 5 V input          10m   16.4     4.0    0.16       nan        8.0
+U3.3 Pi 5 V             20m    8.2     2.0    0.24      0.50        4.0
+All 2512 shunts must be rated >= 1 W (10 mOhm: >= 2 W, 1 W at 8.5 A is 72 % load).
+Note: a fuse lets ~1.35x its rating through for a long time, P@fuse is the real worst case.
+
+2. INA3221 input filter resistor error (IN- sinks Vbus/670k extra)
+------------------------------------------------------------------
+Rfilt   10 ohm, Vbus   24 V: offset  358.2 uV =  35.8 mA @10m,  17.9 mA @20m,   7.2 mA @50m
+Rfilt   10 ohm, Vbus    5 V: offset   74.6 uV =   7.5 mA @10m,   3.7 mA @20m,   1.5 mA @50m
+Rfilt    1 ohm, Vbus   24 V: offset   35.8 uV =   3.6 mA @10m,   1.8 mA @20m,   0.7 mA @50m
+Rfilt    1 ohm, Vbus    5 V: offset    7.5 uV =   0.7 mA @10m,   0.4 mA @20m,   0.1 mA @50m
+Rfilt   10 ohm + 100 nF differential: fc =     80 kHz
+Rfilt    1 ohm + 100 nF differential: fc =    796 kHz
+-> 10 ohm gives up to 36 mA offset on the 10 mOhm channels (more than the INA's own
+   80 uV max). 1 ohm keeps it at 3.6 mA, below the INA offset spec, and still filters
+   the >1 MHz transients TI's 7.4.3 is about. Decision: R1-R18 = 1 ohm.
+
+3. 24 V bus vs INA3221 26 V abs max
+-----------------------------------
+SMBJ24A starts conducting at 26.7 V (min) and clamps to 38.9 V at peak current:
+it does NOT keep the INA below 26.0 V. It only stops big surges.
+-> PSU must be set to 24.0 V; braking spikes are absorbed by the Spider bulk caps.
+   If the bus ever needs headroom: INA238/INA228 (85 V).
+
+4. Open-drain alert pull-ups (R19, R20 = 10k to 3V3)
+----------------------------------------------------
+Sink current 0.33 mA per line (INA spec VOL 0.4 V at 3 mA) -> OK, 4 sinkers wired-OR.
+Rise time with ~100 pF cable: 2.2 us -> fine for an alarm line.
+
+5. Fuse-blown LEDs (LED + R across each fuse; lights when the fuse is open AND a load is connected)
+---------------------------------------------------------------------------------------------------
+24 V rail, R 10.0k: LED 2.21 mA, resistor  48.8 mW (0603 = 100 mW)
+ 5 V rail, R  1.0k: LED 3.10 mA, resistor   9.6 mW (0603 = 100 mW)
+Leakage into a disconnected/off load with intact fuse: 0 (LED shorted by the fuse).
+
+6. 3V3 budget (AP2112K-3.3 from 5 V)
+------------------------------------
+  3x INA3221 (max)               1.35 mA
+  STM32G071 @64 MHz + ADC       12.00 mA
+  status LED                     1.30 mA
+  bias divider                   0.17 mA
+  alert pull-ups (both low)      0.66 mA
+  total 15.5 mA of 600 mA; LDO loss 26 mW -> OK
+5 V TVS SMBJ5.0A clamps at 9.2 V peak > AP2112 6.5 V abs max: surge-only protection,
+the 5 V source must be a regulated supply (it is).
+
+7. Current transformers (ZMCT103C, 1000:1)
+------------------------------------------
+Datasheet accuracy, phase and linearity are given at 50.0 ohm burden.
+Old design used 100/150 ohm (outside the spec). New: 49.9 ohm 0.1 % on all four.
+CT1 total           6.3 A ->   314 mV rms, clips at 22.7 A rms (sine), 1 LSB = 16.1 mA =  3.7 W
+CT2 bed 750 W       3.3 A ->   165 mV rms, clips at 22.7 A rms (sine), 1 LSB = 16.1 mA =  3.7 W
+CT3 chamber 500 W   2.2 A ->   110 mV rms, clips at 22.7 A rms (sine), 1 LSB = 16.1 mA =  3.7 W
+CT4 spare           2.0 A ->   100 mV rms, clips at 22.7 A rms (sine), 1 LSB = 16.1 mA =  3.7 W
+RMS over 800 samples/window: quantisation noise ~LSB/sqrt(12*N) -> < 1 mA. Resolution is not the limit;
+CT accuracy (0.2 % class A / 0.4 % class E) and calibration are.
+SMAJ5.0CA across the burden: conducts from 6.4 V = 0 mA secondary = 91 A rms primary -> only faults/inrush.
+
+8. Mains voltage via 9 V AC adapter
+-----------------------------------
+R72 100k/10k (/11.0):  9.00 V rms -> 1.16 V peak at the ADC (limit 1.60 V) OK
+R72 100k/10k (/11.0): 12.67 V rms -> 1.63 V peak at the ADC (limit 1.60 V) TOO CLOSE
+R72 120k/10k (/13.0):  9.00 V rms -> 0.98 V peak at the ADC (limit 1.60 V) OK
+R72 120k/10k (/13.0): 12.67 V rms -> 1.38 V peak at the ADC (limit 1.60 V) OK
+-> R72 = 120k: 9 V nominal gives ~1.0 V peak, worst case ~1.36 V, 0.24 V margin.
+Adapter loop current ~0.1 mA flows adapter -> R72 -> R73 -> VBIAS -> adapter (J21 sleeve = VBIAS):
+it does not pass through the bias divider, so no 50 Hz ripple is injected into the CT channels.
+Same for the CTs: each pair returns to VBIAS, burden current stays on the CT board.
+
+9. ADC front end (1k + 10 nF C0G, BAV99 clamps)
+-----------------------------------------------
+fc = 15.9 kHz, phase at 50 Hz = 0.18 deg (identical on all channels -> cancels in V*I)
+Charge sharing: 10 nF vs ~5 pF ADC sample cap -> 0.05 % kick, recovers via 1k in <1 us
+Fault: CT TVS at 9.2 V -> BAV99 clamp current through 1k = 3.4 mA into +3V3_MCU (MCU pin < 5 mA) OK
+RJ45 unplugged: CTx_S would float -> add 100k CTx_S -> VBIAS on the main board (reads 0 A).
+  Load on the burden: 49.9 ohm || 100k = 0.05 % low -> calibrated out.
+
+10. Copper for the high-current paths (IPC-2221, external, 2 oz, dT 10 C)
+-------------------------------------------------------------------------
+ 8.5 A ->  2.9 mm trace (or pour on both layers)
+ 7.0 A ->  2.2 mm trace (or pour on both layers)
+ 5.0 A ->  1.4 mm trace (or pour on both layers)
+ 3.0 A ->  0.7 mm trace (or pour on both layers)
+
+11. I2C
+-------
+Pi pull-ups 1.8k on GPIO2/3 -> R21/R22 DNP. 4 targets: 0x40, 0x41, 0x42 (INA), 0x50 (STM32 app),
+0x51 (STM32 ROM bootloader, AN2606 Rev 62 table 91: I2C1 PB6/PB7, 0b1010001x). No collisions.
+The ROM bootloader stretches SCL during erase/write; the Pi's hardware I2C handles long clock
+stretching badly -> flash with the i2c-gpio overlay (bit-banged, supports stretching) at 100 kHz.
+App firmware: answer from buffered registers, no stretching (I2C NOSTRETCH).
