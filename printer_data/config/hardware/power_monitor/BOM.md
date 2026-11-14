@@ -276,13 +276,36 @@ a dedicated 5 V supply (e.g. Mean Well LRS-35-5 / LRS-50-5 or a 24 V -> 5 V
 the Spider's regulator and avoids Pi brown-outs.
 
 ## Alternatives considered for the DC monitor (2026-11-14)
-| Option | ICs + decoupling for 9 ch | Bus max | Resolution / offset | LCSC (1k+ price, stock) | Verdict |
+| Option | ICs + decoupling for 9 ch | Bus max | Resolution / offset | LCSC (price, stock) | Verdict |
 |---|---|---|---|---|---|
 | **TI INA3221** (chosen) | 3 + 3 | 26 V | 40 uV LSB, 80 uV max | C181255, ~$1.33, 5.6k | Fewest parts, 4 addresses = 12 ch max |
 | TI INA226, 1 ch | 9 + 9 | 36 V | 2.5 uV LSB, 10 uV max | C49851, ~$0.38, 61k | Better accuracy and 36 V headroom, but +12 parts and 9 alert lines |
 | 3PEAK TPA626 (Chinese, INA226 pin/register compatible) | 9 + 9 | 36 V | as INA226 | C5761471, ~$0.50, JLC Extended | Same as INA226, no real gain |
 | TI INA219 | 9 + 9 | 26 V | 10 uV LSB, 12-bit | C138706, ~$0.49 | Same 26 V limit, worse ADC - no |
-| TI INA4230, 4 ch 48 V | 3 + 3 | 48 V | 16-bit | C41348431, ~$5, 5 pcs, DSBGA only | Not hand/inspection friendly, no stock - no |
+| TI INA237, 1 ch | 9 + 9 | 85 V | 5 uV LSB, 50 uV max, gain 0.3 % | C2864837, ~$1.07, 7.0k | Best choice for a 48 V variant |
+| TI INA228 / INA238, 1 ch | 9 + 9 | 85 V | 20-bit / 16-bit | C2887910 / C2868250, out of stock | INA228 would be ideal (energy) when back |
+| TI INA4230 / INA4235, 4 ch 48 V | 3 + 3 | 48 V | 16-bit | C41348431 (20 pcs) / C33440856 (207 pcs), ~$5, DSBGA only | Not hand/inspection friendly, low stock - no |
+
+What each part computes on-chip (TI product pages, INA3221 SBOS576C):
+
+| Part | Shunt + bus V | Current | Power | Energy / charge | Die temp | Alerts |
+|---|---|---|---|---|---|---|
+| INA3221 | yes | - | - | - | - | Critical (per conversion, per channel), Warning (averaged, per channel), shunt-sum limit, PV (all rails above limit), each on its own pin |
+| INA226 / TPA626 / INA219 | yes | yes | yes | - | - | 1 pin, one selectable limit (INA219: none) |
+| INA237 / INA238 | yes | yes | yes | - | yes | 1 pin, several limits (V, I, P, temp), 75 us response |
+| INA228 | yes | yes | yes | yes / yes | yes | as INA237 + shunt tempco compensation |
+| INA4235 | yes | yes | yes | yes / - | - | over/under current and voltage per channel |
+
+Current and power on-chip are only a convenience here: the host computes
+I = Vshunt / Rshunt and P = Vbus x I in one line, with the same accuracy (the
+bus is a stiff 24 V). On-chip energy accumulation (INA228, INA4235) is the one
+real gain: it integrates every conversion, while the INA3221 multiplexes 6
+measurements, so each channel is sampled ~1/6 of the time. With on-chip
+averaging and 1 s polling the per-print energy error is a few percent, which is
+enough for this board. The INA3221 has the best alert set: CRITICAL is wired
+to the STM32 (PA8), the Pi (J10 pin 4) and a Spider input (J11), WARNING to the
+Pi (J10 pin 5); PV is unused.
+
 No Chinese INA3221 equivalent was found (3PEAK, SGMICRO, lingxingic only
 clone the single-channel / analog INA parts). The INA226/TPA626 route only
 pays off if the 24 V rail must ever run above ~25 V; until then the
