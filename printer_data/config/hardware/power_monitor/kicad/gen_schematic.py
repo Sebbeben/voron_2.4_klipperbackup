@@ -201,8 +201,7 @@ def main_board():
     X, Y = 25.4, 38.1
     s.text("INPUTS + PROTECTION", X, Y - 15)
     s.part("Connector:Screw_Terminal_01x02", "J1", "24V IN", X, Y, {"1": "24V_IN", "2": "GND"},
-           "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-7.62_1x02_P7.62mm_Horizontal",
-           "C5188497", "MAX MX7620-7.62-02P-GN01-Cu-S-A", note="24 V from LRS-200-24, >= 20 A terminal")
+           FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P", note="24 V from LRS-200-24 (max ~8.5 A), 18 A terminal")
     s.part("Connector:Screw_Terminal_01x02", "J2", "5V IN", X, Y + 30.48, {"1": "5V_IN", "2": "GND"},
            FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P", note="5 V in (today: Spider 5 V; later dedicated PSU)")
     tvs(s, "SMBJ24A", "D1", X + 38.1, Y, "24V_IN", "C132570", "Yenji SMBJ24A", "Diode_SMD:D_SMB")
@@ -309,7 +308,7 @@ def main_board():
           note="Bootloader interface idle high (AN2606 / V11.3 issue) - verify pin list")
     C(s, "C43", "100n", bx + 203.2, by + 35.56, "NRST", "GND", "C14663", "YAGEO CC0603KRX7R9BB104", note="NRST filter")
     s.part("Switch:SW_Push", "SW1", "RESET", bx + 223.52, by + 35.56, {"1": "NRST", "2": "GND"},
-           "Button_Switch_SMD:SW_SPST_TL3342", "C318884", "XKB TS-1187A-B-A-B")
+           "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "C318884", "XKB TS-1187A-B-A-B")
     R(s, "R64", "10k", bx + 203.2, by + 63.5, "SWCLK", "BOOT0_JP", "C25804", "UNI-ROYAL 0603WAF1002T5E",
       note="BOOT0 recovery: PA14 is BOOT0 on G0")
     s.part("Jumper:SolderJumper_2_Open", "JP1", "BOOT0", bx + 223.52, by + 63.5, {"1": "BOOT0_JP", "2": "+3V3_MCU"},
