@@ -28,7 +28,8 @@ DS = {
     "vdda": 3.3,
     # Diodes SMBJ24A / SMBJ5.0A / SMAJ5.0CA (VBR min, VC max)
     "smbj24a": (26.7, 38.9),
-    "smbj5a": (6.4, 9.2),
+    "smbj5a": (6.4, 9.2),          # SMAJ5.0CA on the CT board (same VBR/VC)
+    "smbj6a": (6.67, 10.3),        # SMBJ6.0A on the 5 V input (MDD datasheet)
     "smaj5ca": (6.4, 9.2),
     # Diodes AP2112K
     "ap2112_iout": 0.6, "ap2112_vin_abs": 6.5,
@@ -105,8 +106,9 @@ tot = sum(loads.values())
 for k, v in loads.items():
     print(f"  {k:28s} {v*1e3:6.2f} mA")
 print(f"  total {tot*1e3:.1f} mA of {DS['ap2112_iout']*1e3:.0f} mA; LDO loss {(5-3.3)*tot*1e3:.0f} mW -> OK")
-vbr5, vc5 = DS["smbj5a"]
-print(f"5 V TVS SMBJ5.0A clamps at {vc5} V peak > AP2112 {DS['ap2112_vin_abs']} V abs max: surge-only protection,")
+vbr5, vc5 = DS["smbj6a"]
+print("5 V TVS SMBJ6.0A: VRWM 6.0 V > 5.25 V Pi supply max (SMBJ5.0A leaked above its 5.0 V VRWM).")
+print(f"It clamps at {vc5} V peak > AP2112 {DS['ap2112_vin_abs']} V abs max: surge-only protection,")
 print("the 5 V source must be a regulated supply (it is).")
 
 hdr("7. Current transformers (ZMCT103C, 1000:1)")
