@@ -1,0 +1,65 @@
+{
+    "type": "filament",
+    "name": "PETG @Voron 2.4 350 Rapido",
+    "inherits": "Generic PETG @System",
+    "from": "User",
+    "version": "2.1.0.0",
+    "filament_settings_id": [
+        "PETG @Voron 2.4 350 Rapido"
+    ],
+    "compatible_printers": [
+        "Voron 2.4 350 Rapido 0.4"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "close_fan_the_first_x_layers": [
+        "2"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "85"
+    ],
+    "textured_plate_temp": [
+        "80"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "85"
+    ],
+    "eng_plate_temp": [
+        "80"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "85"
+    ],
+    "filament_flow_ratio": [
+        "0.92"
+    ],
+    "filament_notes": "Door open or slightly open. Use the textured PEI side (PETG can bond too hard to smooth PEI). Max volumetric speed is a SAFE START value for the Rapido HF (temporary V6 nozzle is lower!) - raise it after the Orca max-flow test. Flow ratio 0.92 copies the old Cura value until extruder rotation_distance is calibrated."
+}
