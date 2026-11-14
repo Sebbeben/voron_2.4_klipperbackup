@@ -306,6 +306,12 @@ enough for this board. The INA3221 has the best alert set: CRITICAL is wired
 to the STM32 (PA8), the Pi (J10 pin 4) and a Spider input (J11), WARNING to the
 Pi (J10 pin 5); PV is unused.
 
+A 48 V variant of this board is not planned (decided 2026-11-14): on printers
+that use 48 V, only the stepper drivers get it, from a separate PSU. If that
+PSU is added, its mains input is measured on CT4 (spare) instead - real power
+in W including the PSU losses, no DC parts on the board change. The 24 V side
+stays INA3221.
+
 No Chinese INA3221 equivalent was found (3PEAK, SGMICRO, lingxingic only
 clone the single-channel / analog INA parts). The INA226/TPA626 route only
 pays off if the 24 V rail must ever run above ~25 V; until then the

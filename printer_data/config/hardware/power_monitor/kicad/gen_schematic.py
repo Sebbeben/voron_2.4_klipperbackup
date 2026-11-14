@@ -520,7 +520,7 @@ def ct_board():
     cts = [("T1", "R1", "49.9", *P["49R9"], "CT1", "PRINTER TOTAL"),
            ("T2", "R2", "49.9", *P["49R9"], "CT2", "BED"),
            ("T3", "R3", "49.9", *P["49R9"], "CT3", "CHAMBER HEATER"),
-           ("T4", "R4", "49.9", *P["49R9"], "CT4", "SPARE")]
+           ("T4", "R4", "49.9", *P["49R9"], "CT4", "SPARE (future 48 V motor PSU)")]
     pairs = {"CT1": ("1", "2"), "CT2": ("3", "6"), "CT3": ("4", "5"), "CT4": ("7", "8")}
     for i, (t, r, val, lc, mp, ct, name) in enumerate(cts):
         x, y = 30.48 + i * 55.88, 76.2
