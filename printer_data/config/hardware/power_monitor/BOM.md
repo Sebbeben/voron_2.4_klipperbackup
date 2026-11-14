@@ -9,10 +9,10 @@ the LCSC numbers before ordering (JLCPCB assembly uses them).
   24 V in -> measured -> internal bus -> 6 fused, individually measured
   outputs. Same for 5 V. Replaces the current distribution terminals.
 - 3 x TI INA3221 = 9 channels, high side, on one I2C bus.
-- 4 x PCB-mounted current transformers for the mains loads, sampled by an
-  RP2040 on the board (section C).
+- 4 x PCB-mounted current transformers + mains voltage (via an AC-AC
+  adapter) for the mains loads, sampled by an RP2350B on the board (section C).
 - Read by the Raspberry Pi over I2C (`dtparam=i2c_arm=on` is already set):
-  INA3221 at 0x40-0x42, RP2040 as I2C target at 0x50. Board 3.3 V from its
+  INA3221 at 0x40-0x42, RP2350B as I2C target at 0x50. Board 3.3 V from its
   own LDO (fed from the 5 V input).
 - Sum check: 24 V input vs. sum of the 24 V outputs -> detects a fault on
   the board / measurement error.
@@ -96,18 +96,27 @@ PV and TC outputs: not used, left unconnected (open-drain).
 | - | Silicone wire 14 AWG (24 V input, Spider), 18 AWG (others) | |
 | 1 | DIN-rail holder or printed mount for the electronics bay | |
 
-## C. Mains current: 4 x PCB-mounted current transformers + RP2040
+## C. Mains: 4 x PCB-mounted current transformers + AC voltage, RP2350B
 Replaces the PZEM modules. **No mains copper on the PCB**: the mains wire
 is threaded through the hole of each CT; only the isolated secondary is
 soldered to the board.
 
 Why an MCU: a CT gives a 50 Hz AC signal. RMS needs fast sampling
-(>= 2 kHz); the INA3221 cannot do that. The RP2040 has exactly 4 ADC inputs
-(GPIO26-29), computes RMS current per channel and acts as an **I2C target
+(>= 2 kHz); the INA3221 cannot do that. The **RP2350B** (QFN-80 variant of
+the RP2350) has 8 ADC inputs (GPIO40-47): 4 CTs + mains voltage + 3 spare.
+It computes Vrms, Irms, real power (W), apparent power (VA), power factor,
+energy (Wh) and mains frequency per channel, and acts as an **I2C target
 (0x50) on the same bus** as the INA3221s, so the Pi reads everything over
-one bus. Power ~= 230 V x Irms (heaters are resistive, PF ~= 1). Optional
-real voltage/power: an external 9 V AC-AC wall adapter on a 5th ADC path
-(OpenEnergyMonitor emonTx method) - not in rev 0.
+one bus. (RP2040 has only 4 ADC inputs - not enough.)
+
+**Mains voltage (230 V / 50 Hz) without mains on the PCB:** an external
+AC-AC wall adapter (transformer type, 9-12 V **AC** output - not a DC
+adapter) plugged into the same mains supply. Its low-voltage AC output is
+divided down and biased to 1.65 V on the board (OpenEnergyMonitor emonTx
+method). The adapter's transformer provides the isolation. Calibrate once
+against a multimeter (the adapter's ratio is not exact). The ADC samples
+are multiplexed, ~2 us apart per channel = < 0.1 degree phase error at
+50 Hz, negligible for power factor.
 
 | CT ch | Mains load | Expected max | Burden | Signal at max |
 |---|---|---|---|---|
@@ -115,6 +124,7 @@ real voltage/power: an external 9 V AC-AC wall adapter on a 5th ADC path
 | CT2 | Bed heater (750 W) | 3.3 A | 150 Ohm | 0.50 V rms |
 | CT3 | Chamber heater (<= 500 W, cold inrush higher) | 2.2 A | 150 Ohm | 0.33 V rms |
 | CT4 | Spare (LRS-200 primary, Pi PSU, ...) | - | 150 Ohm | - |
+| V | Mains voltage via 9 V AC adapter | 230 V +-10 % -> 9-12 V AC | 100 k / 10 k divider | ~1.0 V peak |
 
 Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
 
@@ -126,11 +136,16 @@ Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
 | R34-R41 | 8 | Bias divider for 1.65 V (shared or per channel) | 10 kOhm, 1 % | 0603 | tbd |
 | C30-C33 | 4 | Bias decoupling | 10 uF, X5R | 0805 | tbd |
 | R42-R45, C34-C37 | 4+4 | Anti-alias RC to each ADC pin | 1 kOhm + 10 nF | 0603 | tbd |
-| U10 | 1 | MCU | RP2040 | QFN-56 | tbd |
+| U10 | 1 | MCU | RP2350B (8 ADC inputs) | QFN-80 | tbd |
+| J13 | 1 | AC adapter input | 2.1 mm barrel jack (AC, polarity irrelevant) | THT | tbd |
+| R46, R47 | 2 | Voltage divider for the AC adapter | 100 kOhm + 10 kOhm, 0.1 % | 0603 | tbd |
+| R48, R49, C38 | 2+1 | Bias 1.65 V for the voltage channel | 10 kOhm 1 % x2 + 10 uF | 0603/0805 | tbd |
+| D14 | 1 | Clamp on the voltage ADC input | BAV99 | SOT-23 | tbd |
+| - | 1 | External AC-AC adapter, 230 V -> 9 V AC, >= 500 mA | e.g. the type used with OpenEnergyMonitor (EU plug) | - | - |
 | U11 | 1 | QSPI flash | W25Q16JVUXIQ (2 MB) or W25Q128 | USON-8 | tbd |
 | Y1 | 1 | Crystal | 12 MHz, 15-20 pF load | 3225 | tbd |
 | C40-C41 | 2 | Crystal load caps | per crystal datasheet (~15-27 pF) | 0603 | tbd |
-| C42-C52 | ~11 | RP2040 decoupling (IOVDD, DVDD, ADC_AVDD, USB_VDD, VREG) | 100 nF + 1 uF + 10 uF per datasheet | 0603/0805 | tbd |
+| C42-C55 | ~14 | RP2350B decoupling (IOVDD, DVDD, ADC_AVDD, USB_OTP_VDD, VREG) + core regulator inductor | per RP2350 hardware design guide (100 nF / 4.7 uF / 3.3 uH) | 0603/0805 | tbd |
 | U12 | 1 | LDO 5 V -> 3.3 V (board 3V3 for MCU + INAs, cleaner ADC) | AP2112K-3.3 or similar, >= 300 mA | SOT-23-5 | tbd |
 | FB1 | 1 | Ferrite bead + 1 uF for ADC_AVDD | 600 Ohm @ 100 MHz | 0603 | tbd |
 | SW1 | 1 | BOOTSEL button | tactile | SMD | tbd |
@@ -150,9 +165,10 @@ Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
 - 230 V wiring done by someone used to mains wiring.
 
 ## D. Software (to do)
-- RP2040 firmware: sample 4 CT channels (~4 kHz each), RMS over 10 cycles
-  (200 ms), expose Irms registers as I2C target 0x50.
-- Python service on the Pi: reads the 3 INA3221 (0x40-0x42) and the RP2040
+- RP2350B firmware: sample 4 CT channels + voltage (~4 kHz each), over 10
+  cycles (200 ms) compute Vrms, Irms, W, VA, PF, Hz, accumulate Wh; expose
+  as I2C target 0x50.
+- Python service on the Pi: reads the 3 INA3221 (0x40-0x42) and the RP2350B
   (0x50), publishes to Moonraker (MQTT sensor component) for history and
   Mainsail.
 - Checks: 24 V input vs. sum of outputs; fan channel current too low ->
@@ -163,6 +179,5 @@ Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
 - Channel map above: which loads are actually wired separately today
   (check the electronics bay)? Is the Pi fed from its own 5 V PSU or a buck?
 - CRITICAL alert: to a Klipper input (pause / shutdown) or only log?
-- Mains voltage: assume 230 V (rev 0) or add the AC-AC adapter input for
-  real power and power factor?
-- RP2040 to the Pi: I2C target (current plan) or USB serial?
+- Mains voltage: decided 2026-11-14 - measured via AC-AC adapter (230 V / 50 Hz).
+- RP2350B to the Pi: I2C target (current plan) or USB serial?
