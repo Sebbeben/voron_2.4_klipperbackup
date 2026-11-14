@@ -9,7 +9,7 @@ for board in ("main_board", "ct_board"):
         body = m.group(2)
         prop = lambda k: (re.search(r'\(property "%s" "([^"]*)"' % k, body) or [None, ""])[1]
         ref = prop("Reference")
-        if ref.startswith("#") or "(dnp yes)" in body or prop("Footprint").startswith("MountingHole") \
+        if ref.startswith("#") or "(dnp yes)" in body or "(in_bom no)" in body or prop("Footprint").startswith("MountingHole") \
            or prop("Footprint").startswith("TestPoint"):
             continue
         key = (prop("Value"), prop("Footprint"), prop("LCSC"), prop("MPN"))
@@ -20,6 +20,6 @@ for board in ("main_board", "ct_board"):
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #", "MPN", "Qty"])
         for (val, fp, lcsc, mpn), refs in groups.items():
             refs.sort(key=lambda r: (re.sub(r"\d", "", r), int(re.sub(r"\D", "", r) or 0)))
-            qty = len(refs) * (2 if "(x2" in mpn else 1)   # e.g. two fuse clips per fuse
+            qty = len(refs)
             w.writerow([val, ",".join(refs), fp.split(":")[-1], lcsc, mpn, qty])
     print("wrote", out, len(groups), "lines")
