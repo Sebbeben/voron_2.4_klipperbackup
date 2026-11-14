@@ -404,7 +404,7 @@ def main_board():
            "Connector_JST:JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical", "C144397", "JST B6B-XH-A(LF)(SN)",
            note="Pi: GND pin 9, SDA GPIO2 pin 3, SCL GPIO3 pin 5, alerts + HEATER_EN_PI to free GPIOs (>= GPIO9: pulled low at boot)")
     s.part("Connector_Generic:Conn_01x02", "J11", "TO SPIDER INPUT", bx, by + 40.64,
-           {"1": "CRITICAL", "2": "GND"}, "Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical", "", "JST B2B-XH-A",
+           {"1": "CRITICAL", "2": "GND"}, "Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical", "C158012", "JST B2B-XH-A(LF)(SN)",
            note="Open-drain CRITICAL to a Spider endstop input (Klipper gcode_button)")
     R(s, "R19", "10k", bx + 30.48, by, "+3V3", "CRITICAL", "C25804", "UNI-ROYAL 0603WAF1002T5E", note="Wired-OR pull-up")
     R(s, "R20", "10k", bx + 43.18, by, "+3V3", "WARNING", "C25804", "UNI-ROYAL 0603WAF1002T5E", note="Wired-OR pull-up")
