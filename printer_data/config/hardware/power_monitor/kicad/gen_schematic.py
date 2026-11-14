@@ -7,7 +7,8 @@ so the netlist is defined in one place below. Re-run after editing:
 Symbols come from the official KiCad 8.0.8 libraries in ./libsrc, plus a
 custom INA3221 symbol defined here (not in the KiCad library).
 """
-import os, re, uuid
+import os, re, sys, uuid
+sys.dont_write_bytecode = True  # keep __pycache__ out of the config backup
 import kilib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
