@@ -104,7 +104,7 @@ Status 2026-11-13: toolhead disassembled, **no motor movement** for a few days.
 - [ ] Check the X rail is **MGN12H** (required for CNC Tap V2)
 - [ ] Clean and grease all linear rails, check belts and printed parts for cracks
 - [ ] Clean the Orbiter drive gears
-- [ ] Fit the chamber NTC (spare HT-NTC100K) on Spider T0 / PC0, mid-height side panel
+- [ ] Chamber NTCs: fit 3 x NTC 100K temporarily (PC0 rear mid, PC1 side mid, PC2 top), compare during a heatsoak, keep the best as `chamber_air` - see `chamber_sensors.cfg`. Check gantry clearance, cable length to the electronics bay
 - [ ] Fit new fans when delivered (see `fan_upgrade.cfg` for wiring)
 
 ### On site - heaters only, bed empty
