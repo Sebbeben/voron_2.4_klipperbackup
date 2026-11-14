@@ -32,6 +32,28 @@ INA_PINS = [  # number, name, type, side, slot
     ("3", "GND", "power_in", "B", 0), ("17", "EP", "passive", "B", 1),
 ]
 
+# STM32G071KxT (GP version, no N suffix) differs from the KxTxN (PD version) that KiCad has a
+# symbol for: DS12232 Rev 3 figure 7. Only the in-stock KBT6 (C529348) is a GP part.
+GP_PIN_NAMES = {"17": "PB2", "26": "PA15", "27": "PB3", "28": "PB4", "29": "PB5"}
+
+def stm32_gp_symbol():
+    b = kilib.flat_symbol("MCU_ST_STM32G0", "STM32G071KBTxN")
+    b = b.replace('(symbol "MCU_ST_STM32G0:STM32G071KBTxN"', '(symbol "PowerMonitor:STM32G071KBTx"', 1)
+    b = b.replace('(symbol "STM32G071KBTxN_', '(symbol "STM32G071KBTx_')
+    out, pos = [], 0
+    for m in kilib.PIN_RE.finditer(b):
+        pb = kilib._block(b, m.start())
+        num = re.search(r'\(number "([^"]*)"', pb).group(1)
+        if num in GP_PIN_NAMES:
+            new = re.sub(r'\(name "[^"]*"', '(name "%s"' % GP_PIN_NAMES[num], pb, 1)
+            out.append(b[pos:m.start()] + new)
+            pos = m.start() + len(pb)
+    out.append(b[pos:])
+    b = "".join(out)
+    b = re.sub(r'\(property "Value" "[^"]*"', '(property "Value" "STM32G071KBTx"', b, 1)
+    b = re.sub(r'\(property "Description" "[^"]*"', '(property "Description" "STM32G071KBT6 LQFP-32 GP version (DS12232 fig. 7): pin 17 PB2, 26-29 PA15/PB3/PB4/PB5"', b, 1)
+    return b
+
 def ina_symbol():
     pins = []
     for num, name, typ, side, slot in INA_PINS:
@@ -70,6 +92,8 @@ class Sheet:
         if lib_id not in self.libs:
             if lib_id == "PowerMonitor:INA3221":
                 self.libs[lib_id] = ina_symbol()
+            elif lib_id == "PowerMonitor:STM32G071KBTx":
+                self.libs[lib_id] = stm32_gp_symbol()
             else:
                 lib, name = lib_id.split(":")
                 self.libs[lib_id] = kilib.flat_symbol(lib, name)
@@ -316,8 +340,8 @@ def main_board():
         "30": "SCL", "31": "SDA", "18": "CRITICAL", "17": "LED_STAT",
         "24": "SWDIO", "25": "SWCLK",
     }
-    s.part("MCU_ST_STM32G0:STM32G071KBTxN", "U10", "STM32G071KBT6N", bx + 152.4, by + 15.24, mcu_nets,
-           "Package_QFP:LQFP-32_7x7mm_P0.8mm", "C529349", "ST STM32G071KBT6N",
+    s.part("PowerMonitor:STM32G071KBTx", "U10", "STM32G071KBT6", bx + 152.4, by + 15.24, mcu_nets,
+           "Package_QFP:LQFP-32_7x7mm_P0.8mm", "C529348", "ST STM32G071KBT6",
            note="PA0=V, PA1/PB0/PB1/PA5=CT1-4, PB6/PB7=I2C1 (= ROM bootloader I2C1, addr 0x51), PB8=heater relay enable")
     # bootloader pin pull-ups (G07x bootloader V11.3 issue) + NSS idle high
     # AN2606 Rev 62 table 91: bootloader USART RX = PA10 (USART1), PA3 (USART2), PC11 (USART3, not
