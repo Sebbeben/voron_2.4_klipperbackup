@@ -150,8 +150,10 @@ Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
 - 230 V wiring done by someone used to mains wiring.
 
 ## D. Software (to do)
-- Python service on the Pi: reads the 3 INA3221 (0x40-0x42) and the PZEMs
-  (Modbus), publishes to Moonraker (MQTT sensor component) for history and
+- RP2040 firmware: sample 4 CT channels (~4 kHz each), RMS over 10 cycles
+  (200 ms), expose Irms registers as I2C target 0x50.
+- Python service on the Pi: reads the 3 INA3221 (0x40-0x42) and the RP2040
+  (0x50), publishes to Moonraker (MQTT sensor component) for history and
   Mainsail.
 - Checks: 24 V input vs. sum of outputs; fan channel current too low ->
   warning; bed/chamber current while Klipper reports the heater off -> stuck
@@ -161,4 +163,6 @@ Signal biased at 1.65 V (mid-rail), peak <= 0.85 V -> stays within 0-3.3 V.
 - Channel map above: which loads are actually wired separately today
   (check the electronics bay)? Is the Pi fed from its own 5 V PSU or a buck?
 - CRITICAL alert: to a Klipper input (pause / shutdown) or only log?
-- 3.3 V from the Pi (current plan) or an onboard LDO from 5 V?
+- Mains voltage: assume 230 V (rev 0) or add the AC-AC adapter input for
+  real power and power factor?
+- RP2040 to the Pi: I2C target (current plan) or USB serial?
