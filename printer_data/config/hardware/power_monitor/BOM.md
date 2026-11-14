@@ -62,7 +62,7 @@ INA3221 shunt full scale 163.84 mV, LSB 40 uV.
 | U2 | 2 | 24 V -> Nevermore / exhaust | 1.5 A | 3 A | 50 mOhm | 3.3 A | 0.8 mA |
 | U2 | 3 | 24 V -> lights (Daylight XXL) | 2 A | 3 A | 20 mOhm | 8.2 A | 2 mA |
 | U3 / 0x42 (A0=SDA) | 1 | 24 V -> spare (12 V buck for the PTC fan, ...) | 2 A | 3 A | 20 mOhm | 8.2 A | 2 mA |
-| U3 | 2 | **5 V input** | 4 A | - | 10 mOhm | 16.4 A | 4 mA |
+| U3 | 2 | **5 V input** (today: Spider 5 V pin; later a dedicated 5 V supply) | 4 A | - | 10 mOhm | 16.4 A | 4 mA |
 | U3 | 3 | 5 V -> Pi (+ screen, USB cam via Pi) | 3.5 A | 5 A | 20 mOhm | 8.2 A | 2 mA |
 
 Fan channels use 50 mOhm so a stalled or dead fan (~0.1 A drop) is clearly
@@ -123,7 +123,8 @@ solder pad. Notes:
 | C16 | 1 | 5 V bus bulk | 10 uF, 16 V, X7R | 1206 | tbd |
 | D1 | 1 | TVS 24 V bus | SMBJ24A, unidirectional | SMB | tbd |
 | D2 | 1 | TVS 5 V bus | SMBJ5.0A, unidirectional | SMB | tbd |
-| R19, R20 | 2 | Pull-up CRITICAL + WARNING (wired-OR, all 3 INAs) | 10 kOhm | 0603 | tbd |
+| R19, R20 | 2 | Pull-up CRITICAL + WARNING (wired-OR: all 3 INAs + STM32 open-drain GPIO) | 10 kOhm | 0603 | tbd |
+| J11 | 1 | Alert output to a Spider endstop input (CRITICAL, GND) - open-drain, works with the Spider's own pull-up | JST-XH 2-pin | THT | tbd |
 | **Distribution** | | | | | |
 | F1-F7 | 7 | PCB fuse holder, mini blade (ATM) | Keystone 3557-2 type, >= 15 A | THT | tbd |
 | - | 7 | ATM fuses | 10 A x1, 5 A x2, 3 A x4 | - | - |
@@ -191,15 +192,39 @@ A0->SDA (0x42). 0x43 free. INA PV and TC outputs unused (open-drain, NC).
   warning; bed/chamber current while Klipper reports the heater off -> stuck
   SSR -> cut power via the Shelly relay.
 
+## Alert handling - all options available
+CRITICAL and WARNING are open-drain, wired-OR lines, so they can go to
+several inputs at once. The board supports every reaction; which one is
+used is chosen in software/config, not by rewiring:
+
+| Source | Line | Goes to | Possible reaction (configurable) |
+|---|---|---|---|
+| INA3221 critical limit (per channel, hardware comparator, ~1 ms) | CRITICAL | Spider input (J11) **and** Pi GPIO (J10) | Klipper `[gcode_button]` on the Spider pin: `PAUSE`, `M112` (emergency stop) or log only |
+| INA3221 warning limit (averaged) | WARNING | Pi GPIO (J10) | Pi service: log / Mainsail notification / Mobileraker push |
+| STM32 mains checks (overcurrent, bed/chamber current outside expected range) | CRITICAL (open-drain GPIO) | same as above | same as above - works even if the Pi service is not running |
+| Pi service (stuck SSR: current while Klipper reports heater off) | - (software) | Moonraker + Shelly | cut mains via the Shelly relay, `M112` via Moonraker |
+
+Limits for the INA critical/warning comparators and the STM32 checks are
+written over I2C by the Pi service at start-up (stored in a config file),
+so they can be changed without reflashing.
+
+## 5 V supply note
+Today the Pi is fed from the Spider's 5 V pin. The board measures whatever
+feeds the 5 V input, so nothing changes in the design. Recommended later:
+a dedicated 5 V supply (e.g. Mean Well LRS-35-5 / LRS-50-5 or a 24 V -> 5 V
+5 A DIN buck) into the 5 V input - takes the Pi + screen + USB cam load off
+the Spider's regulator and avoids Pi brown-outs.
+
 ## Decisions
 - 2026-11-14: mains voltage measured via AC-AC adapter (230 V / 50 Hz).
 - 2026-11-14: two boards (CT board + main board), STM32G071 instead of RP2350B.
+- 2026-11-14: JLCPCB assembly (prefer Basic parts).
+- 2026-11-14: all alert reactions supported (log / pause / emergency stop / Shelly cut), chosen in config.
 
 ## Open
 - Channel map: which loads are actually wired separately today (check the
   electronics bay)? Is the Pi fed from its own 5 V PSU or a buck?
-- CRITICAL alert: to a Klipper input (pause / shutdown) or only log?
-- JLCPCB assembly? (then prefer "basic" parts when picking LCSC numbers)
+- Dedicated 5 V supply for the Pi: which one (see 5 V supply note)?
 
 ## Sources
 - AN2606, STM32 system memory boot mode: https://www.st.com/resource/en/application_note/cd00167594-stm32-microcontroller-system-memory-boot-mode-stmicroelectronics.pdf
