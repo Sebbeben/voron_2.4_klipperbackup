@@ -121,7 +121,7 @@ class Sheet:
         """Multi-line plain note (design calculations). KiCad reads \\n as a line break."""
         self.text("\\n".join(lines), x, y, size, bold=False)
 
-    def part(self, lib_id, ref, value, x, y, nets, footprint=None, lcsc="", mpn="", dnp=False, note=""):
+    def part(self, lib_id, ref, value, x, y, nets, footprint=None, lcsc="", mpn="", dnp=False, note="", in_bom=True):
         """nets: {pin_number: net_name or None(=no-connect)}. Unlisted pins -> no-connect."""
         assert ref not in self.refs, ref
         self.refs.add(ref)
@@ -145,7 +145,7 @@ class Sheet:
         self.items.append(
             '(symbol (lib_id "%s") (at %.2f %.2f 0) (unit 1) (exclude_from_sim no) (in_bom %s) (on_board yes) (dnp %s) (uuid "%s") %s %s '
             '(instances (project "%s" (path "/%s" (reference "%s") (unit 1)))))'
-            % (lib_id, x, y, "no" if ref.startswith("#") else "yes", "yes" if dnp else "no", U(), ptxt, pin_txt,
+            % (lib_id, x, y, "no" if ref.startswith("#") or not in_bom else "yes", "yes" if dnp else "no", U(), ptxt, pin_txt,
                self.project, self.root, ref))
         for num, (name, px, py, pa, etype) in pins.items():
             ax, ay = x + px, y - py
@@ -186,11 +186,12 @@ FP_C1206 = "Capacitor_SMD:C_1206_3216Metric"
 FP_C1210 = "Capacitor_SMD:C_1210_3225Metric"
 FP_LED = "LED_SMD:LED_0603_1608Metric"
 FP_TERM = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
-FP_FUSE = "PowerMonitor:Fuseholder_Blade_Mini_Keystone_3557x2"  # 2 clips per fuse (3568 out of stock)
+FP_CLIP = "PowerMonitor:Fuseclip_Blade_Mini_Keystone_3557"  # one clip per designator, pair = 9.73 mm apart
 FP_TP = "TestPoint:TestPoint_Pad_D1.5mm"
 FP_MH = "MountingHole:MountingHole_3.2mm_M3"
 
 SHUNT = {  # value -> (lcsc, mpn)
+    "5m": ("C5375417", "Milliohm HoYLR2512-2W-5mR-1%"),  # 2 W, 1 % (Spider: 0.91 W at 1.35x 10 A fuse)
     "10m": ("C375688", "YAGEO PA2512FKE7W0R01E"),       # 2 W, 1 %, 50 ppm
     "20m": ("C7420049", "FOJAN FRM252WFR020TN"),        # 2 W, 1 %, 50 ppm (backup C2083112 YAGEO)
     "50m": ("C7420008", "FOJAN FRM252WFR050TN"),        # 2 W, 1 %, 50 ppm (backup C49164908 JIERR)
@@ -198,6 +199,8 @@ SHUNT = {  # value -> (lcsc, mpn)
 
 # Parts re-checked 2026-11-14 (stock + datasheet). (lcsc, mpn)
 P = {
+    "100n": ("C346191", "Samsung CL10B104KB8NFNC"),     # 100 nF 50 V X7R 0603 (C14663 out of stock)
+    "2k2": ("C4190", "UNI-ROYAL 0603WAF2201T5E"),        # 2.2k 0603 1 %
     "1R": ("C22936", "UNI-ROYAL 0603WAF100KT5E"),        # 1 ohm 0603 1 %
     "120k": ("C25808", "UNI-ROYAL 0603WAF1203T5E"),      # 120k 0603 1 %
     "100k": ("C25803", "UNI-ROYAL 0603WAF1003T5E"),      # 100k 0603 1 %
@@ -246,7 +249,7 @@ def main_board():
     s.part("Connector:Screw_Terminal_01x02", "J2", "5V IN", X, Y + 30.48, {"1": "5V_IN", "2": "GND"},
            FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P", note="5 V in (today: Spider 5 V; later dedicated PSU)")
     tvs(s, "SMBJ24A", "D1", X + 38.1, Y, "24V_IN", "C224017", "Littelfuse SMBJ24A", "Diode_SMD:D_SMB")
-    tvs(s, "SMBJ5.0A", "D2", X + 38.1, Y + 30.48, "5V_IN", "C110528", "Diodes SMBJ5.0A-13-F", "Diode_SMD:D_SMB")
+    tvs(s, "SMBJ6.0A", "D2", X + 38.1, Y + 30.48, "5V_IN", "C113976", "MDD SMBJ6.0A", "Diode_SMD:D_SMB")  # VRWM 6 V > 5.25 V Pi supply
     C(s, "C14", "10u 50V", X + 63.5, Y, "24V_BUS", "GND", "C138687", "Samsung CL32B106KBJNNNE", FP_C1210)
     C(s, "C15", "10u 50V", X + 76.2, Y, "24V_BUS", "GND", "C138687", "Samsung CL32B106KBJNNNE", FP_C1210)
     C(s, "C16", "10u", X + 63.5, Y + 30.48, "5V_BUS", "GND", "C14860", "Samsung CL31B106KAHNNNE", FP_C1206)
@@ -254,12 +257,13 @@ def main_board():
     s.flag("5V_IN", X + 95.25, Y + 30.48)
     s.flag("GND", X + 107.95, Y)
     s.flag("+3V3_MCU", X + 107.95, Y + 30.48)
+    s.flag("5V_BUS", X + 95.25, Y + 45.72)
 
     # ---- Block B: INA3221 x3 with shunts + filters -------------------------
     # (chip, addr net, [(ch, hi, lo, shunt ref, value, out_net_after_fuse)])
     inas = [
         ("U1", "GND", [(1, "24V_IN", "24V_BUS", "RS1", "10m"),
-                       (2, "24V_BUS", "SPIDER_F", "RS2", "10m"),
+                       (2, "24V_BUS", "SPIDER_F", "RS2", "5m"),
                        (3, "24V_BUS", "SB2040_F", "RS3", "20m")]),
         ("U2", "+3V3", [(1, "24V_BUS", "CHFAN_F", "RS4", "50m"),
                         (2, "24V_BUS", "NEVERMORE_F", "RS5", "50m"),
@@ -281,7 +285,7 @@ def main_board():
             nets["IN-%d" % ch] = "%s_IN%dN" % (u, ch)
         s.part("PowerMonitor:INA3221", u, "INA3221AIRGVR", bx + 101.6, by + 10.16, nets,
                lcsc="C181255", mpn="TI INA3221AIRGVR")
-        C(s, "C%d" % (10 + i), "100n", bx + 139.7, by + 5.08, "+3V3", "GND", "C14663", "YAGEO CC0603KRX7R9BB104",
+        C(s, "C%d" % (10 + i), "100n", bx + 139.7, by + 5.08, "+3V3", "GND", *P["100n"],
           note="INA VS decoupling, close to the pin")
         for k, (ch, hi, lo, rs, val) in enumerate(chans):
             cy = by + k * 33.02
@@ -293,7 +297,7 @@ def main_board():
             R(s, "R%d" % (rnum + 1), "1", bx + 30.48, cy, lo, "%s_IN%dN" % (u, ch), *P["1R"],
               note="Input filter, Kelvin from shunt load side")
             C(s, "C%d" % cnum, "100n 50V", bx + 45.72, cy, "%s_IN%dP" % (u, ch), "%s_IN%dN" % (u, ch),
-              "C14663", "YAGEO CC0603KRX7R9BB104", note="Differential input filter")
+              *P["100n"], note="Differential input filter")
             rnum += 2
             cnum += 1
 
@@ -311,8 +315,12 @@ def main_board():
     s.text("FUSED OUTPUTS (LED lights when the fuse is blown and a load is connected)", bx, by - 20)
     for i, (f, rating, src, dst, j, jname, rled) in enumerate(outs):
         x = bx + i * 50.8
-        s.part("Device:Fuse", f, rating, x, by, {"1": src, "2": dst}, FP_FUSE, "C2680614", "Keystone 3557 (x2 clips)",
-               note="Mini blade (ATM) fuse in 2x Keystone 3557 clips, fuse %s" % rating)
+        # Two clips per fuse, each its own designator (JLC places one part per designator).
+        # Layout: place FxA/FxB 9.73 mm apart (centre to centre, legs in line) = ATM mini fuse.
+        s.part("Connector_Generic:Conn_01x01", f + "A", "CLIP %s %s" % (f, rating), x - 5.08, by, {"1": src}, FP_CLIP,
+               "C2680614", "Keystone 3557", note="Mini blade fuse clip, supply side. Fuse %s %s ATM" % (f, rating))
+        s.part("Connector_Generic:Conn_01x01", f + "B", "CLIP %s %s" % (f, rating), x + 5.08, by, {"1": dst}, FP_CLIP,
+               "C2680614", "Keystone 3557", note="Mini blade fuse clip, load side. Fuse %s %s ATM" % (f, rating))
         R(s, "RL%d" % (i + 1), rled, x + 12.7, by, src, "LEDF%d" % (i + 1), "C25804" if rled == "10k" else "C21190",
           "UNI-ROYAL 0603WAF1002T5E" if rled == "10k" else "UNI-ROYAL 0603WAF1001T5E")
         s.part("Device:LED", "LEDF%d" % (i + 1), "red", x + 12.7, by + 22.86, {"2": "LEDF%d" % (i + 1), "1": dst},
@@ -330,38 +338,39 @@ def main_board():
     s.part("Device:FerriteBead_Small", "FB1", "600R@100MHz", bx + 45.72, by, {"1": "+3V3", "2": "+3V3_MCU"},
            "Inductor_SMD:L_0603_1608Metric", "C85833", "Murata BLM18KG601SN1D", note="Filters MCU/ADC supply (VDD=VDDA on LQFP-32)")
     C(s, "C40", "4u7", bx + 58.42, by + 20.32, "+3V3_MCU", "GND", "C1779", "Samsung CL21A475KAQNNNE", FP_C0805)
-    C(s, "C41", "100n", bx + 71.12, by + 20.32, "+3V3_MCU", "GND", "C14663", "YAGEO CC0603KRX7R9BB104", note="Close to VDD pin 4")
+    C(s, "C41", "100n", bx + 71.12, by + 20.32, "+3V3_MCU", "GND", *P["100n"], note="Close to VDD pin 4")
     C(s, "C42", "1u", bx + 83.82, by + 20.32, "+3V3_MCU", "GND", "C15849", "Samsung CL10A105KB8NNNC")
 
     mcu_nets = {
         "4": "+3V3_MCU", "5": "GND", "6": "NRST",
-        "7": "ADC_V", "8": "ADC_CT1", "15": "ADC_CT2", "16": "ADC_CT3", "12": "ADC_CT4",
+        "7": "ADC_V", "8": "ADC_CT1", "15": "ADC_CT2", "16": "ADC_CT3", "14": "ADC_CT4",
         "11": "PA4_NSS", "10": "PA3_RX2", "21": "PA10_RX1", "32": "HEATER_EN_MCU",
         "30": "SCL", "31": "SDA", "18": "CRITICAL", "17": "LED_STAT",
         "24": "SWDIO", "25": "SWCLK",
     }
     s.part("PowerMonitor:STM32G071KBTx", "U10", "STM32G071KBT6", bx + 152.4, by + 15.24, mcu_nets,
            "Package_QFP:LQFP-32_7x7mm_P0.8mm", "C529348", "ST STM32G071KBT6",
-           note="PA0=V, PA1/PB0/PB1/PA5=CT1-4, PB6/PB7=I2C1 (= ROM bootloader I2C1, addr 0x51), PB8=heater relay enable")
+           note="PA0=V, PA1/PB0/PB1/PA7=CT1-4 (all FT_a; PA5 is TT_a, no positive injection), PB6/PB7=I2C1 (= ROM bootloader I2C1, addr 0x51), PB8=heater relay enable")
     # bootloader pin pull-ups (G07x bootloader V11.3 issue) + NSS idle high
     # AN2606 Rev 62 table 91: bootloader USART RX = PA10 (USART1), PA3 (USART2), PC11 (USART3, not
     # bonded on LQFP-32); SPI1 NSS = PA4. Pull them high so the bootloader only reacts to I2C1.
     for i, net in enumerate(["PA3_RX2", "PA10_RX1", "PA4_NSS"]):
         R(s, "R%d" % (60 + i), "10k", bx + 203.2 + i * 12.7, by, "+3V3_MCU", net, "C25804", "UNI-ROYAL 0603WAF1002T5E",
           note="Bootloader USART RX / SPI1 NSS idle high (AN2606 Rev 62 table 91)")
-    C(s, "C43", "100n", bx + 203.2, by + 35.56, "NRST", "GND", "C14663", "YAGEO CC0603KRX7R9BB104", note="NRST filter")
+    C(s, "C43", "100n", bx + 203.2, by + 35.56, "NRST", "GND", *P["100n"], note="NRST filter")
     s.part("Switch:SW_Push", "SW1", "RESET", bx + 223.52, by + 35.56, {"1": "NRST", "2": "GND"},
            "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "C318884", "XKB TS-1187A-B-A-B")
     R(s, "R64", "10k", bx + 203.2, by + 63.5, "SWCLK", "BOOT0_JP", "C25804", "UNI-ROYAL 0603WAF1002T5E",
-      note="BOOT0 recovery: PA14 is BOOT0 on G0")
+      note="BOOT0 recovery (needs nBOOT_SEL = 0): PA14 is BOOT0 on G0")
     s.part("Jumper:SolderJumper_2_Open", "JP1", "BOOT0", bx + 223.52, by + 63.5, {"1": "BOOT0_JP", "2": "+3V3_MCU"},
-           "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm", note="Open by default; bridge for ROM bootloader recovery")
+           "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm", in_bom=False,
+           note="Open by default. Works ONLY after nBOOT_SEL = 0 in the option bytes (factory = 1, BOOT0 pin ignored; AN2606 pattern 11)")
     R(s, "R65", "1k", bx + 248.92, by, "LED_STAT", "LED_STAT_A", "C21190", "UNI-ROYAL 0603WAF1001T5E")
     s.part("Device:LED", "LED10", "green", bx + 248.92, by + 22.86, {"2": "LED_STAT_A", "1": "GND"},
            FP_LED, "C12624", "KENTO KT-0603G", note="Status LED (active high)")
     s.part("Connector_Generic:Conn_01x05", "J22", "SWD", bx + 279.4, by + 15.24,
            {"1": "+3V3_MCU", "2": "SWDIO", "3": "SWCLK", "4": "NRST", "5": "GND"},
-           "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical", note="SWD: 3V3, SWDIO, SWCLK, NRST, GND")
+           "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical", in_bom=False, note="SWD: 3V3, SWDIO, SWCLK, NRST, GND (hand-soldered header)")
 
     # ---- Block E: mains analog (CT signals + AC voltage) -------------------
     bx, by = 330.2, 38.1
@@ -375,7 +384,7 @@ def main_board():
     R(s, "R70", "10k 0.1%", bx + 30.48, by, "+3V3_MCU", "VBIAS", "C95204", "YAGEO RT0603BRD0710KL")
     R(s, "R71", "10k 0.1%", bx + 30.48, by + 22.86, "VBIAS", "GND", "C95204", "YAGEO RT0603BRD0710KL")
     C(s, "C30", "10u", bx + 43.18, by + 11.43, "VBIAS", "GND", "C15850", "Samsung CL21A106KAYNNNE", FP_C0805)
-    C(s, "C31", "100n", bx + 55.88, by + 11.43, "VBIAS", "GND", "C14663", "YAGEO CC0603KRX7R9BB104")
+    C(s, "C31", "100n", bx + 55.88, by + 11.43, "VBIAS", "GND", *P["100n"])
     # AC voltage input
     s.part("Connector:Barrel_Jack", "J21", "AC 9V IN", bx, by + 63.5, {"1": "AC_A", "2": "VBIAS"},
            "Connector_BarrelJack:BarrelJack_Horizontal", "C2961147", "CUI PJ-002AH",
@@ -391,10 +400,11 @@ def main_board():
     chans = [("CT1_S", "ADC_CT1"), ("CT2_S", "ADC_CT2"), ("CT3_S", "ADC_CT3"), ("CT4_S", "ADC_CT4"), ("V_SENSE", "ADC_V")]
     for i, (src, adc) in enumerate(chans):
         x = bx + 76.2 + i * 33.02
-        R(s, "R%d" % (74 + i), "1k", x, by + 63.5, src, adc, "C21190", "UNI-ROYAL 0603WAF1001T5E", note="Anti-alias")
+        R(s, "R%d" % (74 + i), "2k2", x, by + 63.5, src, adc, *P["2k2"], note="Anti-alias + fault current limit (< 3.1 mA into the clamp)")
         C(s, "C%d" % (35 + i), "10n C0G", x + 12.7, by + 86.36, adc, "GND", "C76599", "TDK C1608C0G1H103JT000N", note="Anti-alias")
-        s.part("Diode:BAV99", "D%d" % (10 + i), "BAV99", x + 6.35, by + 25.4, {"1": "+3V3_MCU", "2": "GND", "3": adc},
-               None, "C2500", "Nexperia BAV99,215", note="ADC clamp to rails")
+        s.part("Diode:BAV99", "D%d" % (10 + i), "BAV99", x + 6.35, by + 25.4, {"1": "GND", "2": "+3V3_MCU", "3": adc},
+               None, "C2500", "Nexperia BAV99,215",
+               note="ADC clamp to rails. Pin 1 = A1 (GND), 2 = K2 (3V3), 3 = K1/A2 (signal); KiCad 8 pin NAMES are wrong, numbers are right")
 
     # ---- Block F: Pi header, alerts, I2C, test points ----------------------
     bx, by = 330.2, 190.5
