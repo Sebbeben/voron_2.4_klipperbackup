@@ -20,5 +20,6 @@ for board in ("main_board", "ct_board"):
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #", "MPN", "Qty"])
         for (val, fp, lcsc, mpn), refs in groups.items():
             refs.sort(key=lambda r: (re.sub(r"\d", "", r), int(re.sub(r"\D", "", r) or 0)))
-            w.writerow([val, ",".join(refs), fp.split(":")[-1], lcsc, mpn, len(refs)])
+            qty = len(refs) * (2 if "(x2" in mpn else 1)   # e.g. two fuse clips per fuse
+            w.writerow([val, ",".join(refs), fp.split(":")[-1], lcsc, mpn, qty])
     print("wrote", out, len(groups), "lines")
