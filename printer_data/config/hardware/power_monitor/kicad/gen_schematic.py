@@ -54,6 +54,24 @@ def stm32_gp_symbol():
     b = re.sub(r'\(property "Description" "[^"]*"', '(property "Description" "STM32G071KBT6 LQFP-32 GP version (DS12232 fig. 7): pin 17 PB2, 26-29 PA15/PB3/PB4/PB5"', b, 1)
     return b
 
+def ct_symbol():
+    b = kilib.flat_symbol("Device", "Transformer_1P_1S")
+    b = b.replace('(symbol "Device:Transformer_1P_1S"', '(symbol "PowerMonitor:ZMCT103C"', 1)
+    b = b.replace('(symbol "Transformer_1P_1S_', '(symbol "ZMCT103C_')
+    out, pos = [], 0
+    for m in kilib.PIN_RE.finditer(b):
+        pb = kilib._block(b, m.start())
+        num = re.search(r'\(number "([^"]*)"', pb).group(1)
+        if num in ("1", "2"):          # primary pins do not exist: the mains wire goes through the hole
+            out.append(b[pos:m.start()])
+            pos = m.start() + len(pb)
+    out.append(b[pos:])
+    b = "".join(out)
+    b = re.sub(r'\(property "Value" "[^"]*"', '(property "Value" "ZMCT103C"', b, 1)
+    b = re.sub(r'\(property "Footprint" "[^"]*"', '(property "Footprint" "PowerMonitor:ZMCT103C"', b, 1)
+    b = re.sub(r'\(property "Description" "[^"]*"', '(property "Description" "ZMCT103C 1000:1 wire-through CT; only the secondary (pins 3/4) has pads"', b, 1)
+    return b
+
 def ina_symbol():
     pins = []
     for num, name, typ, side, slot in INA_PINS:
@@ -92,6 +110,8 @@ class Sheet:
         if lib_id not in self.libs:
             if lib_id == "PowerMonitor:INA3221":
                 self.libs[lib_id] = ina_symbol()
+            elif lib_id == "PowerMonitor:ZMCT103C":
+                self.libs[lib_id] = ct_symbol()
             elif lib_id == "PowerMonitor:STM32G071KBTx":
                 self.libs[lib_id] = stm32_gp_symbol()
             else:
@@ -457,16 +477,17 @@ def main_board():
     # ---- Design calculations on the sheet (full version: ../design_calcs.py) ---
     s.text("DESIGN CALCULATIONS - DC side (INA3221, datasheet SBOS576C)", 155, 22, 2.0)
     s.note([
-        "Shunt full scale 163.84 mV, LSB 40 uV, offset 80 uV max.  P = I^2 x R, P@fuse = fuse rating^2 x R",
-        "CH                 Rsh   FS     LSB     Imax   P@Imax  P@fuse  Vos max",
-        "U1.1 24V in        10m   16.4A  4.0mA   8.5A   0.72W   -       8.0mA",
-        "U1.2 Spider        10m   16.4A  4.0mA   7.0A   0.49W   1.00W   8.0mA",
-        "U1.3 SB2040        20m    8.2A  2.0mA   3.5A   0.24W   0.50W   4.0mA",
-        "U2.1/2.2 fans/Nev  50m    3.3A  0.8mA   1.5A   0.11W   0.45W   1.6mA",
-        "U2.3/3.1 light/sp  20m    8.2A  2.0mA   2.0A   0.08W   0.18W   4.0mA",
-        "U3.2 5V in         10m   16.4A  4.0mA   4.0A   0.16W   -       8.0mA",
-        "U3.3 Pi 5V         20m    8.2A  2.0mA   3.5A   0.24W   0.50W   4.0mA",
-        "-> all shunts 2512 >= 2 W (max load 50 %).",
+        "Shunt full scale 163.84 mV, LSB 40 uV, offset 80 uV max.  P = I^2 x R.",
+        "ATM fuse: 1.1x rating may flow indefinitely, 1.35x up to 30 min -> P@1.35xF is the worst case.",
+        "CH                 Rsh   FS     LSB     Imax   P@Imax  P@1.1xF P@1.35xF Vos max",
+        "U1.1 24V in        10m   16.4A  4.0mA   8.5A   0.72W   PSU OCP 11.9A: 1.42W  8.0mA",
+        "U1.2 Spider         5m   32.8A  8.0mA   7.0A   0.24W   0.60W   0.91W    16mA",
+        "U1.3 SB2040        20m    8.2A  2.0mA   3.5A   0.24W   0.60W   0.91W    4.0mA",
+        "U2.1/2.2 fans/Nev  50m    3.3A  0.8mA   1.5A   0.11W   0.54W   0.82W    1.6mA",
+        "U2.3/3.1 light/sp  20m    8.2A  2.0mA   2.0A   0.08W   0.22W   0.33W    4.0mA",
+        "U3.2 5V in         10m   16.4A  4.0mA   4.0A   0.16W   -       -        8.0mA",
+        "U3.3 Pi 5V         20m    8.2A  2.0mA   3.5A   0.24W   0.60W   0.91W    4.0mA",
+        "-> all shunts 2512 2 W, <= 71 % worst case (Spider 10m would be 1.82 W -> 5m).",
         "",
         "Input filter R: IN- sinks 10 uA + Vbus/670k, IN+ only 10 uA -> extra 35.8 uA at 24 V.",
         "  10 ohm: 358 uV error = 36 mA on 10m (above the INA's own 80 uV)  -> rejected",
@@ -474,6 +495,7 @@ def main_board():
         "  1 ohm + 100 nF: fc = 1/(2 pi 2R C) = 796 kHz (TI: filter only >1 MHz transients)",
         "",
         "26 V abs max: SMBJ24A conducts from 26.7 V (VC 38.9 V) -> surge only. PSU MUST be 24.0 V.",
+        "No reverse-polarity protection on J1/J2: reversed input kills U1-U3 (IN+- min -0.3 V).",
         "Alert pull-ups 10k: 0.33 mA sink (VOL 0.4 V @ 3 mA OK), rise 2.2 us @ 100 pF.",
         "Fuse LEDs: 24 V: (24-1.9)/10k = 2.2 mA, 49 mW;  5 V: (5-1.9)/1k = 3.1 mA, 10 mW (0603 = 100 mW).",
         "3V3 budget: 3x INA 1.35 + MCU 12 + LEDs/bias/pull-ups 2.1 = 15.5 mA of 600 mA, LDO 26 mW.",
@@ -496,10 +518,12 @@ def main_board():
         "Adapter and CT loops return to VBIAS (J21 sleeve,",
         "  RJ45 pair), no current through R70/R71 -> no 50 Hz",
         "  ripple on VBIAS, no false power.",
-        "Anti-alias 1k + 10 nF C0G: fc 15.9 kHz, 0.18 deg at",
+        "Anti-alias 2.2k + 10 nF C0G: fc 7.2 kHz, 0.40 deg at",
         "  50 Hz (same on all channels -> cancels in V x I).",
-        "  Fault 9.2 V: (9.2-1.65-3.3-0.8)/1k = 3.4 mA into",
-        "  BAV99 -> MCU pin < 5 mA OK.",
+        "  Fault (CT TVS 9.2 V around VBIAS): (1.65+9.2-3.3-0.8)",
+        "  /2.2k = 3.1 mA into BAV99 (1k gave 6.75 mA). ADC pins",
+        "  PA0/PA1/PA7/PB0/PB1 are FT_a: no positive injection,",
+        "  -5 mA limit OK. PA5 (TT_a) not used.",
         "  100k CTx_S -> VBIAS: unplugged reads 0 A,",
         "  burden error 49.9/100k = 0.05 % (calibrated).",
         "",
@@ -507,6 +531,9 @@ def main_board():
         "  bootloader (AN2606 Rev 62 tab 91: I2C1 PB6/PB7).",
         "  Bootloader USART RX PA10/PA3 + SPI1 NSS PA4 pulled",
         "  high; USART3 RX PC11 and SPI2 not on LQFP-32.",
+        "  BOOT0 pin (JP1) is ignored until nBOOT_SEL = 0 is",
+        "  written (factory 1, AN2606 pattern 11). Recovery",
+        "  without it: SWD (J22, connect under reset).",
         "  Flash via i2c-gpio overlay (clock stretching).",
         "",
         "Heater relay: Q1 AND Q2 must be on. AO3400A",
@@ -535,9 +562,9 @@ def ct_board():
     for i, (t, r, val, lc, mp, ct, name) in enumerate(cts):
         x, y = 30.48 + i * 55.88, 76.2
         s.text(name, x - 10.16, y - 17.78, 1.5)
-        s.part("Device:Transformer_1P_1S", t, "ZMCT103C", x, y, {"1": None, "2": None, "3": ct + "_S", "4": ct + "_R"},
+        s.part("PowerMonitor:ZMCT103C", t, "ZMCT103C", x, y, {"3": ct + "_S", "4": ct + "_R"},
                "PowerMonitor:ZMCT103C", "C94571", "ZHE MING LANG XI ZMCT103C",
-               note="Primary = mains wire through the dia 5 mm hole (pins 1-2 not connected). Pad 3 = CT pin 1* (dot). All CTs same direction (P1* side = supply side)")
+               note="Primary = mains wire through the dia 5 mm hole (no primary pins). Pad 3 = CT pin 1* (dot). All CTs same direction (P1* side = supply side)")
         R(s, r, val, x + 20.32, y + 15.24, ct + "_S", ct + "_R", lc, mp, FP_R1206,
           note="Burden directly at the CT pins - secondary must never be open")
         s.part("Diode:SMAJ5.0CA" if tvs_lib("SMAJ5.0CA") != "Device:D_TVS" else "Device:D_TVS",
