@@ -73,7 +73,7 @@ R72 100k/10k (/11.0):  9.00 V rms -> 1.16 V peak at the ADC (limit 1.60 V) OK
 R72 100k/10k (/11.0): 12.67 V rms -> 1.63 V peak at the ADC (limit 1.60 V) TOO CLOSE
 R72 120k/10k (/13.0):  9.00 V rms -> 0.98 V peak at the ADC (limit 1.60 V) OK
 R72 120k/10k (/13.0): 12.67 V rms -> 1.38 V peak at the ADC (limit 1.60 V) OK
--> R72 = 120k: 9 V nominal gives ~1.0 V peak, worst case ~1.36 V, 0.24 V margin.
+-> R72 = 120k: 9 V nominal gives ~1.0 V peak, worst case ~1.38 V, 0.22 V margin.
 Adapter loop current ~0.1 mA flows adapter -> R72 -> R73 -> VBIAS -> adapter (J21 sleeve = VBIAS):
 it does not pass through the bias divider, so no 50 Hz ripple is injected into the CT channels.
 Same for the CTs: each pair returns to VBIAS, burden current stays on the CT board.

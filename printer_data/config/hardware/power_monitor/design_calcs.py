@@ -132,7 +132,7 @@ for rtop in (100e3, 120e3):
         vp = v * math.sqrt(2) / ratio
         print(f"R72 {rtop/1e3:3.0f}k/10k (/{ratio:4.1f}): {v:5.2f} V rms -> {vp:4.2f} V peak at the ADC "
               f"(limit {vhead:.2f} V) {'OK' if vp < vhead*0.95 else 'TOO CLOSE'}")
-print("-> R72 = 120k: 9 V nominal gives ~1.0 V peak, worst case ~1.36 V, 0.24 V margin.")
+print("-> R72 = 120k: 9 V nominal gives ~1.0 V peak, worst case ~1.38 V, 0.22 V margin.")
 print("Adapter loop current ~0.1 mA flows adapter -> R72 -> R73 -> VBIAS -> adapter (J21 sleeve = VBIAS):")
 print("it does not pass through the bias divider, so no 50 Hz ripple is injected into the CT channels.")
 print("Same for the CTs: each pair returns to VBIAS, burden current stays on the CT board.")
