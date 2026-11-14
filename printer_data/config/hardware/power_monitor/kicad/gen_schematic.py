@@ -93,6 +93,10 @@ class Sheet:
             '(text "%s" (exclude_from_sim no) (at %.2f %.2f 0) (effects (font (size %g %g)%s) (justify left bottom)) (uuid "%s"))'
             % (s.replace('"', "'"), x, y, size, size, " (bold yes)" if bold else "", U()))
 
+    def note(self, lines, x, y, size=1.5):
+        """Multi-line plain note (design calculations). KiCad reads \\n as a line break."""
+        self.text("\\n".join(lines), x, y, size, bold=False)
+
     def part(self, lib_id, ref, value, x, y, nets, footprint=None, lcsc="", mpn="", dnp=False, note=""):
         """nets: {pin_number: net_name or None(=no-connect)}. Unlisted pins -> no-connect."""
         assert ref not in self.refs, ref
@@ -416,6 +420,68 @@ def main_board():
     R(s, "R85", "100", bx, by + 55.88, "HEATER_EN_PI", "Q2_G", *P["100R"])
     R(s, "R86", "100k", bx + 7.62, by + 66.04, "Q2_G", "GND", *P["100k"], note="Off with the Pi cable unplugged")
 
+    # ---- Design calculations on the sheet (full version: ../design_calcs.py) ---
+    s.text("DESIGN CALCULATIONS - DC side (INA3221, datasheet SBOS576C)", 155, 22, 2.0)
+    s.note([
+        "Shunt full scale 163.84 mV, LSB 40 uV, offset 80 uV max.  P = I^2 x R, P@fuse = fuse rating^2 x R",
+        "CH                 Rsh   FS     LSB     Imax   P@Imax  P@fuse  Vos max",
+        "U1.1 24V in        10m   16.4A  4.0mA   8.5A   0.72W   -       8.0mA",
+        "U1.2 Spider        10m   16.4A  4.0mA   7.0A   0.49W   1.00W   8.0mA",
+        "U1.3 SB2040        20m    8.2A  2.0mA   3.5A   0.24W   0.50W   4.0mA",
+        "U2.1/2.2 fans/Nev  50m    3.3A  0.8mA   1.5A   0.11W   0.45W   1.6mA",
+        "U2.3/3.1 light/sp  20m    8.2A  2.0mA   2.0A   0.08W   0.18W   4.0mA",
+        "U3.2 5V in         10m   16.4A  4.0mA   4.0A   0.16W   -       8.0mA",
+        "U3.3 Pi 5V         20m    8.2A  2.0mA   3.5A   0.24W   0.50W   4.0mA",
+        "-> all shunts 2512 >= 2 W (max load 50 %).",
+        "",
+        "Input filter R: IN- sinks 10 uA + Vbus/670k, IN+ only 10 uA -> extra 35.8 uA at 24 V.",
+        "  10 ohm: 358 uV error = 36 mA on 10m (above the INA's own 80 uV)  -> rejected",
+        "   1 ohm:  36 uV error = 3.6 mA on 10m (below INA offset spec)    -> R1-R18 = 1 ohm",
+        "  1 ohm + 100 nF: fc = 1/(2 pi 2R C) = 796 kHz (TI: filter only >1 MHz transients)",
+        "",
+        "26 V abs max: SMBJ24A conducts from 26.7 V (VC 38.9 V) -> surge only. PSU MUST be 24.0 V.",
+        "Alert pull-ups 10k: 0.33 mA sink (VOL 0.4 V @ 3 mA OK), rise 2.2 us @ 100 pF.",
+        "Fuse LEDs: 24 V: (24-1.9)/10k = 2.2 mA, 49 mW;  5 V: (5-1.9)/1k = 3.1 mA, 10 mW (0603 = 100 mW).",
+        "3V3 budget: 3x INA 1.35 + MCU 12 + LEDs/bias/pull-ups 2.1 = 15.5 mA of 600 mA, LDO 26 mW.",
+        "Copper (IPC-2221, 2 oz outer, dT 10 C): 8.5 A 2.9 mm, 7 A 2.2 mm, 5 A 1.4 mm, 3 A 0.7 mm.",
+    ], 155, 27)
+    s.text("DESIGN CALCULATIONS - mains side + MCU", 505, 160, 2.0)
+    s.note([
+        "CT ZMCT103C 1000:1, burden 49.9 ohm (datasheet specs",
+        "  0.2 %, <=15', 0-15 A linear at 50 ohm).",
+        "  V = I/1000 x 49.9: 6.3 A -> 314 mV, 3.3 A -> 165 mV,",
+        "  2.2 A -> 110 mV rms.  Swing +-1.60 V around 1.65 V",
+        "  -> clips at 1.60/49.9 x 1000/sqrt2 = 22.7 A rms.",
+        "  1 LSB = 3.3/4096/49.9 x 1000 = 16 mA (3.7 W);",
+        "  RMS over 800 samples/200 ms -> < 1 mA resolution.",
+        "  SMAJ5.0CA conducts at 6.4 V = 91 A rms -> fault only.",
+        "AC adapter 9 V AC: worst 9 x 1.28 (unloaded) x 1.10",
+        "  (mains +10 %) = 12.7 V rms = 17.9 V peak.",
+        "  R72/R73 = 120k/10k (/13): 0.98 V nom, 1.38 V worst",
+        "  peak (limit 1.60 V). 100k/10k gave 1.63 V = clipping.",
+        "Adapter and CT loops return to VBIAS (J21 sleeve,",
+        "  RJ45 pair), no current through R70/R71 -> no 50 Hz",
+        "  ripple on VBIAS, no false power.",
+        "Anti-alias 1k + 10 nF C0G: fc 15.9 kHz, 0.18 deg at",
+        "  50 Hz (same on all channels -> cancels in V x I).",
+        "  Fault 9.2 V: (9.2-1.65-3.3-0.8)/1k = 3.4 mA into",
+        "  BAV99 -> MCU pin < 5 mA OK.",
+        "  100k CTx_S -> VBIAS: unplugged reads 0 A,",
+        "  burden error 49.9/100k = 0.05 % (calibrated).",
+        "",
+        "I2C: 0x40/41/42 INA, 0x50 STM32 app, 0x51 ROM",
+        "  bootloader (AN2606 Rev 62 tab 91: I2C1 PB6/PB7).",
+        "  Bootloader USART RX PA10/PA3 + SPI1 NSS PA4 pulled",
+        "  high; USART3 RX PC11 and SPI2 not on LQFP-32.",
+        "  Flash via i2c-gpio overlay (clock stretching).",
+        "",
+        "Heater relay: Q1 AND Q2 must be on. AO3400A",
+        "  Vgs(th) <= 1.45 V -> fully on at 3.3 V.",
+        "  Gate 100 ohm, 100k pull-down = off in reset/boot.",
+        "  Coil <= 0.5 A: Q loss 0.5^2 x 2 x 0.05 = 25 mW.",
+        "  LED: (24-1.9)/10k = 2.2 mA when energised.",
+    ], 505, 165)
+
     s.write(os.path.join(HERE, "main_board.kicad_sch"))
     return s
 
@@ -452,6 +518,16 @@ def ct_board():
            note="Shield NOT connected on this board (grounded on the main board). FOOTPRINT: check against the chosen part")
     for i in range(4):
         s.part("Mechanical:MountingHole", "H%d" % (i + 1), "M3", 30.48 + i * 20.32, 160.02, {}, FP_MH)
+    s.text("DESIGN CALCULATIONS", 110, 140, 2.0)
+    s.note([
+        "ZMCT103C: 5 A : 5 mA (1000:1), 4500 V isolation, linear 0-15 A,",
+        "  accuracy 0.2 % / phase <= 15' specified at a 50 ohm burden -> 49.9 ohm 0.1 %.",
+        "Signal V = I/1000 x 49.9 ohm: 1 A -> 50 mV rms, clips (+-1.6 V) at 22.7 A rms.",
+        "Burden power at 15 A: (15 mA)^2 x 49.9 = 11 mW (1206 = 250 mW).",
+        "SMAJ5.0CA: conducts from 6.4 V = 128 mA secondary = 91 A primary (fault only).",
+        "Secondary is never open: burden sits at the CT pins, cable unplugged is safe.",
+        "Hole dia 5 mm: one single conductor (L) with a thin extra sleeve, OD < 5 mm.",
+    ], 110, 145)
     s.write(os.path.join(HERE, "ct_board.kicad_sch"))
     return s
 
