@@ -67,8 +67,13 @@ resolves well below that (see CALCULATIONS.txt).
 ### CT board layout and safety rules
 - **No copper except the CT secondaries, burdens, TVS and RJ45.** A routed
   slot / keep-out around each CT hole.
-- Mains wires pass through from outside, **double-insulated**, strain-relieved
-  with cable ties so they cannot slide or touch anything else.
+- The CT hole is only **5 mm**: one single conductor (the L wire of that
+  load, H07V-K / silicone 1.5 mm2, ~3-3.5 mm OD) goes through each CT, not
+  a whole cable. Add a thin silicone or heat-shrink sleeve over that wire
+  as the second insulation layer (OD must stay < 5 mm), strain-relieve it
+  with cable ties so it cannot slide or touch anything else.
+- All CTs threaded the same direction (P1* side = supply side, marked on
+  the silkscreen), otherwise the power sign flips (firmware can correct it).
 - CT isolation rating assumes intact wire insulation - do not thread bare or
   damaged wire.
 - RJ45 shield connected to GND on the main board only (one end).
