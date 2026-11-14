@@ -120,7 +120,7 @@ n = 4000 // 50 * 10   # samples per 10-cycle window
 print(f"RMS over {n} samples/window: quantisation noise ~LSB/sqrt(12*N) -> < 1 mA. Resolution is not the limit;")
 print("CT accuracy (0.2 % class A / 0.4 % class E) and calibration are.")
 vbr_t, vc_t = DS["smaj5ca"]
-print(f"SMAJ5.0CA across the burden: conducts from {vbr_t} V = {vbr_t/49.9:.0f} mA secondary = "
+print(f"SMAJ5.0CA across the burden: conducts from {vbr_t} V = {vbr_t/49.9*1e3:.0f} mA secondary = "
       f"{vbr_t/49.9*1000/math.sqrt(2):.0f} A rms primary -> only faults/inrush.")
 
 hdr("8. Mains voltage via 9 V AC adapter")
