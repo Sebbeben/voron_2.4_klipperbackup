@@ -1,6 +1,6 @@
 """Minimal KiCad 8 symbol-library helper: extract + flatten symbols, list pins."""
 import re, os
-LIBDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libsrc')
+LIBDIR = os.environ.get('KICAD_LIBSRC', os.path.expanduser('~/kicad_libsrc_8.0.8'))  # KiCad 8.0.8 symbol libs (not in git)
 _cache = {}
 
 def _lib(name):
