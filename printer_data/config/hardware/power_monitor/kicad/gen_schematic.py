@@ -186,14 +186,14 @@ FP_C1206 = "Capacitor_SMD:C_1206_3216Metric"
 FP_C1210 = "Capacitor_SMD:C_1210_3225Metric"
 FP_LED = "LED_SMD:LED_0603_1608Metric"
 FP_TERM = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
-FP_FUSE = "Fuse:Fuseholder_Blade_Mini_Keystone_3568"
+FP_FUSE = "PowerMonitor:Fuseholder_Blade_Mini_Keystone_3557x2"  # 2 clips per fuse (3568 out of stock)
 FP_TP = "TestPoint:TestPoint_Pad_D1.5mm"
 FP_MH = "MountingHole:MountingHole_3.2mm_M3"
 
 SHUNT = {  # value -> (lcsc, mpn)
-    "10m": ("C323772", "FORT CUM2512-24FR010"),
-    "20m": ("C68608", "UNI-ROYAL MS122WF200MT4E"),
-    "50m": ("C61904", "UNI-ROYAL MS122WF500MT4E"),
+    "10m": ("C375688", "YAGEO PA2512FKE7W0R01E"),       # 2 W, 1 %, 50 ppm
+    "20m": ("C7420049", "FOJAN FRM252WFR020TN"),        # 2 W, 1 %, 50 ppm (backup C2083112 YAGEO)
+    "50m": ("C7420008", "FOJAN FRM252WFR050TN"),        # 2 W, 1 %, 50 ppm (backup C49164908 JIERR)
 }
 
 # Parts re-checked 2026-11-14 (stock + datasheet). (lcsc, mpn)
@@ -202,10 +202,10 @@ P = {
     "120k": ("C25808", "UNI-ROYAL 0603WAF1203T5E"),      # 120k 0603 1 %
     "100k": ("C25803", "UNI-ROYAL 0603WAF1003T5E"),      # 100k 0603 1 %
     "100R": ("C22775", "UNI-ROYAL 0603WAF1000T5E"),      # 100 ohm 0603 1 %
-    "49R9": ("TBD", "49.9 ohm 1206 0.1 % 25 ppm"),
+    "49R9": ("C479116", "RESI PTFR1206B49R9P9"),         # 49.9 ohm 1206 0.1 % 25 ppm thin film
     "AO3400A": ("C20917", "AOS AO3400A"),
-    "FLYBACK": ("TBD", "SS14"),
-    "F_COIL": ("TBD", "1 A SMD fuse 1206"),
+    "FLYBACK": ("C2480", "MDD SS14"),
+    "F_COIL": ("C151135", "Littelfuse 0466001.NRHF"),    # 1 A fast, 63 V, 1206
 }
 
 def R(s, ref, val, x, y, a, b, lcsc="", mpn="", fp=FP_R0603, dnp=False, note=""):
@@ -245,7 +245,7 @@ def main_board():
            FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P", note="24 V from LRS-200-24 (max ~8.5 A), 18 A terminal")
     s.part("Connector:Screw_Terminal_01x02", "J2", "5V IN", X, Y + 30.48, {"1": "5V_IN", "2": "GND"},
            FP_TERM, "C8465", "Kangnex WJ500V-5.08-2P", note="5 V in (today: Spider 5 V; later dedicated PSU)")
-    tvs(s, "SMBJ24A", "D1", X + 38.1, Y, "24V_IN", "C132570", "Yenji SMBJ24A", "Diode_SMD:D_SMB")
+    tvs(s, "SMBJ24A", "D1", X + 38.1, Y, "24V_IN", "C224017", "Littelfuse SMBJ24A", "Diode_SMD:D_SMB")
     tvs(s, "SMBJ5.0A", "D2", X + 38.1, Y + 30.48, "5V_IN", "C110528", "Diodes SMBJ5.0A-13-F", "Diode_SMD:D_SMB")
     C(s, "C14", "10u 50V", X + 63.5, Y, "24V_BUS", "GND", "C138687", "Samsung CL32B106KBJNNNE", FP_C1210)
     C(s, "C15", "10u 50V", X + 76.2, Y, "24V_BUS", "GND", "C138687", "Samsung CL32B106KBJNNNE", FP_C1210)
@@ -311,8 +311,8 @@ def main_board():
     s.text("FUSED OUTPUTS (LED lights when the fuse is blown and a load is connected)", bx, by - 20)
     for i, (f, rating, src, dst, j, jname, rled) in enumerate(outs):
         x = bx + i * 50.8
-        s.part("Device:Fuse", f, rating, x, by, {"1": src, "2": dst}, FP_FUSE, "C5249699", "Keystone 3568",
-               note="Mini blade (ATM) fuse holder, fuse %s" % rating)
+        s.part("Device:Fuse", f, rating, x, by, {"1": src, "2": dst}, FP_FUSE, "C2680614", "Keystone 3557 (x2 clips)",
+               note="Mini blade (ATM) fuse in 2x Keystone 3557 clips, fuse %s" % rating)
         R(s, "RL%d" % (i + 1), rled, x + 12.7, by, src, "LEDF%d" % (i + 1), "C25804" if rled == "10k" else "C21190",
           "UNI-ROYAL 0603WAF1002T5E" if rled == "10k" else "UNI-ROYAL 0603WAF1001T5E")
         s.part("Device:LED", "LEDF%d" % (i + 1), "red", x + 12.7, by + 22.86, {"2": "LEDF%d" % (i + 1), "1": dst},
@@ -328,7 +328,7 @@ def main_board():
     C(s, "C17", "1u", bx, by + 20.32, "5V_BUS", "GND", "C15849", "Samsung CL10A105KB8NNNC", note="LDO input")
     C(s, "C13", "10u", bx + 25.4, by + 20.32, "+3V3", "GND", "C15850", "Samsung CL21A106KAYNNNE", FP_C0805, note="LDO output / 3V3 bulk")
     s.part("Device:FerriteBead_Small", "FB1", "600R@100MHz", bx + 45.72, by, {"1": "+3V3", "2": "+3V3_MCU"},
-           "Inductor_SMD:L_0603_1608Metric", "C1002", "Sunlord GZ1608D601TF", note="Filters MCU/ADC supply (VDD=VDDA on LQFP-32)")
+           "Inductor_SMD:L_0603_1608Metric", "C85833", "Murata BLM18KG601SN1D", note="Filters MCU/ADC supply (VDD=VDDA on LQFP-32)")
     C(s, "C40", "4u7", bx + 58.42, by + 20.32, "+3V3_MCU", "GND", "C1779", "Samsung CL21A475KAQNNNE", FP_C0805)
     C(s, "C41", "100n", bx + 71.12, by + 20.32, "+3V3_MCU", "GND", "C14663", "YAGEO CC0603KRX7R9BB104", note="Close to VDD pin 4")
     C(s, "C42", "1u", bx + 83.82, by + 20.32, "+3V3_MCU", "GND", "C15849", "Samsung CL10A105KB8NNNC")
@@ -369,8 +369,8 @@ def main_board():
     s.part("Connector:RJ45_Shielded", "J20", "RJ45 from CT board", bx, by + 12.7,
            {"1": "CT1_S", "2": "VBIAS", "3": "CT2_S", "6": "VBIAS", "4": "CT3_S", "5": "VBIAS",
             "7": "CT4_S", "8": "VBIAS", "SH": "GND"},
-           "Connector_RJ:RJ45_Amphenol_54602-x08_Horizontal", "C2683360", "kinghelm KH-RJ45-58-8P8C",
-           note="Pairs: 1-2 CT1, 3-6 CT2, 4-5 CT3, 7-8 CT4. Shield to GND here only. FOOTPRINT: check against the chosen part")
+           "PowerMonitor:RJ45_Kinghelm_KH-RJ45-58_Shielded_Horizontal", "C2683360", "kinghelm KH-RJ45-58-8P8C",
+           note="Pairs: 1-2 CT1, 3-6 CT2, 4-5 CT3, 7-8 CT4. Shield tabs to GND here only")
     # bias 1.65 V shared
     R(s, "R70", "10k 0.1%", bx + 30.48, by, "+3V3_MCU", "VBIAS", "C95204", "YAGEO RT0603BRD0710KL")
     R(s, "R71", "10k 0.1%", bx + 30.48, by + 22.86, "VBIAS", "GND", "C95204", "YAGEO RT0603BRD0710KL")
@@ -378,8 +378,8 @@ def main_board():
     C(s, "C31", "100n", bx + 55.88, by + 11.43, "VBIAS", "GND", "C14663", "YAGEO CC0603KRX7R9BB104")
     # AC voltage input
     s.part("Connector:Barrel_Jack", "J21", "AC 9V IN", bx, by + 63.5, {"1": "AC_A", "2": "VBIAS"},
-           "Connector_BarrelJack:BarrelJack_Horizontal", "C3095117", "MPD EJ503A",
-           note="9-12 V AC from a transformer-type AC-AC adapter (NOT DC). Check footprint vs part")
+           "Connector_BarrelJack:BarrelJack_Horizontal", "C2961147", "CUI PJ-002AH",
+           note="9-12 V AC from a transformer-type AC-AC adapter (NOT DC). PJ-002AH matches this footprint (6.0 / 3.0 / 4.7 mm)")
     R(s, "R72", "120k", bx + 30.48, by + 63.5, "AC_A", "V_SENSE", *P["120k"],
       note="Divider /13: 9 V AC nominal -> 1.0 V peak, worst case (unloaded adapter, mains +10 %) 1.38 V peak")
     R(s, "R73", "10k 0.1%", bx + 30.48, by + 86.36, "V_SENSE", "VBIAS", "C95204", "YAGEO RT0603BRD0710KL")
@@ -538,8 +538,8 @@ def ct_board():
         p[a], p[b] = ct + "_S", ct + "_R"
     p["SH"] = None
     s.part("Connector:RJ45_Shielded", "J1", "RJ45 to main board", 251.46, 76.2, p,
-           "Connector_RJ:RJ45_Amphenol_54602-x08_Horizontal", "C2683360", "kinghelm KH-RJ45-58-8P8C",
-           note="Shield NOT connected on this board (grounded on the main board). FOOTPRINT: check against the chosen part")
+           "PowerMonitor:RJ45_Kinghelm_KH-RJ45-58_Shielded_Horizontal", "C2683360", "kinghelm KH-RJ45-58-8P8C",
+           note="Shield NOT connected on this board (grounded on the main board)")
     for i in range(4):
         s.part("Mechanical:MountingHole", "H%d" % (i + 1), "M3", 30.48 + i * 20.32, 160.02, {}, FP_MH)
     s.text("DESIGN CALCULATIONS", 110, 140, 2.0)
