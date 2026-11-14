@@ -10,7 +10,7 @@ Written 2026-11-14. Status: DRAFT, not ordered.
   (`kicad/export_bom.py` regenerates them). Every LCSC number was checked
   for stock on 2026-11-14.
 - `PowerMonitor.pretty/` + `fp-lib-table` - project footprints: ZMCT103C,
-  Keystone 3557 clip pair, Kinghelm RJ45 with shield-tab slots.
+  single Keystone 3557 fuse clip (two per fuse), Kinghelm RJ45 with shield-tab slots.
 - `../design_calcs.py` -> `../CALCULATIONS.txt` - all calculations, with the
   datasheet values they use.
 The tables below are the design notes; where they differ, the schematic wins.
@@ -22,14 +22,17 @@ Changes made while drawing the schematic (2026-11-14):
   26-29 only, so the schematic uses a modified symbol
   (PowerMonitor:STM32G071KBTx). The status LED moves from PB15 to PB2.
   VDD = VDDA on this package -> one ferrite (FB1) feeds the whole MCU.
-  Pin map: PA0 = V, PA1 / PB0 / PB1 / PA5 = CT1-CT4, PB6/PB7 = I2C1
+  Pin map: PA0 = V, PA1 / PB0 / PB1 / PA7 = CT1-CT4 (all FT_a pins), PB6/PB7 = I2C1
   SCL/SDA, PA8 = CRITICAL (open-drain), PB2 = status LED, PB8 = heater
   relay enable, PA13/PA14 = SWD, PF2 = NRST. Pull-ups on PA3, PA10
   (bootloader USART RX) and PA4 (SPI1 NSS). **Checked against AN2606 Rev 62
   table 91** (see "Datasheet review" below).
 - Fuse holders: Keystone 3568 is out of stock, so each fuse sits in **2x
-  Keystone 3557** single clips (C2680614, 14 clips in total). The project
-  footprint uses Keystone's two-clip layout (9.73 x 3.40 mm, 1.6 mm holes).
+  Keystone 3557** single clips (C2680614, 14 clips in total). Each clip has
+  its own designator (F1A/F1B ... F7A/F7B) because JLC places one part per
+  designator. Layout: the two clips of a fuse go 9.73 mm apart centre to
+  centre, legs in line (Keystone layout, 3.40 mm leg spacing, 1.6 mm holes);
+  the footprint's F.Fab layer shows the mating clip position.
   The clips are bare metal, so keep 24 V copper and other parts clear.
 - 24 V input terminal: same 5.08 mm 18 A terminal as the outputs (no 7.62 mm
   2-pin footprint in the KiCad library; max input current ~8.5 A).
@@ -45,13 +48,35 @@ Changes made while drawing the schematic (2026-11-14):
   - SMBJ24A Littelfuse (C224017)
   - ferrite Murata BLM18KG601 (C85833)
   - J11 JST B2B-XH-A (C158012)
-- 100 nF C14663 shows out of stock at LCSC but is a JLCPCB Basic part (JLC
-  keeps its own stock). Fallback: C346191 (Samsung CL10B104KB8NFNC).
+- 100 nF: C14663 is out of stock at LCSC -> all 15 now C346191 (Samsung
+  CL10B104KB8NFNC, 50 V X7R, in stock).
 - Datasheet review changes: INA filter R 10 -> 1 Ohm, CT burden -> 49.9 Ohm,
   AC divider 100k -> 120k, PB9 pull-up removed, 100k on each CT input. See
   CALCULATIONS.txt.
 - Added the heater safety relay driver (block G): Q1 (STM32 PB8) AND Q2 (Pi,
   J10 pin 6) in series, flyback SS14, 1 A fuse, LED, 24 V coil on J12.
+
+Independent design review (2026-11-14) - fixed:
+- **BAV99 clamps D10-D14 were reversed** (shorted 3V3 to GND through two
+  diodes). The KiCad 8 BAV99 symbol pin NAMES are wrong; pin numbers follow
+  the datasheet: 1 = A1 -> GND, 2 = K2 -> 3V3, 3 = K1/A2 -> signal.
+- CT4 moved from PA5 (TT_a, no positive injection allowed) to PA7 (FT_a,
+  ADC_IN7). Anti-alias R 1k -> 2.2k: CT fault current 6.75 -> 3.1 mA (the old
+  calculation had a sign error). fc 7.2 kHz, 0.40 deg at 50 Hz.
+- RS2 (Spider, 10 A fuse) 10 -> 5 mOhm (Milliohm C5375417): at 1.35x fuse
+  rating (may flow up to 30 min) 10 mOhm was 1.82 W on a 2 W part.
+- Fuse clips split into one designator per clip (see above).
+- D2 SMBJ5.0A -> SMBJ6.0A (MDD C113976): VRWM 6 V above the 5.25 V Pi supply.
+- PWR_FLAG on 5V_BUS (ERC: U12 VIN is power_in, fed through RS8).
+- ZMCT103C symbol without the non-existent primary pins (no "pad not found").
+- JP1 / J22 excluded from the JLC BOM (copper jumper / hand-soldered header).
+- **BOOT0 jumper JP1 only works after nBOOT_SEL = 0** is written to the option
+  bytes; factory value 1 = BOOT0 pin ignored (AN2606 pattern 11). Write it on
+  the first SWD flash, otherwise SWD (connect under reset) is the recovery.
+Open from the review:
+- **No reverse-polarity protection on J1/J2**: a reversed input kills U1-U3
+  (IN+- min -0.3 V). Options: polarized connector (e.g. XT60) or a P-FET.
+- RJ45 footprint still to be checked against the Kinghelm drawing / part.
 
 ## Concept - two boards
 | | **CT board** (in the mains area) | **Main board** (next to the Pi) |
@@ -74,7 +99,7 @@ Changes made while drawing the schematic (2026-11-14):
 | CT1 | Printer total (mains in) | ~6.3 A | 49.9 Ohm | 0.31 V rms |
 | CT2 | Bed heater (750 W) | 3.3 A | 49.9 Ohm | 0.17 V rms |
 | CT3 | Chamber heater (<= 500 W, cold inrush higher) | 2.2 A | 49.9 Ohm | 0.11 V rms |
-| CT4 | Spare (LRS-200 primary, Pi PSU, ...) | - | 49.9 Ohm | - |
+| CT4 | Spare (future 48 V motor PSU, LRS-200 primary, ...) | - | 49.9 Ohm | - |
 
 49.9 Ohm on all four: the ZMCT103C datasheet specifies accuracy (0.2 %),
 phase error (<= 15') and the 0-15 A linear range at a 50 Ohm burden. The
@@ -82,14 +107,9 @@ first draft used 100/150 Ohm, which is outside the specified conditions.
 Clipping is at ~22 A rms, 1 ADC LSB = 16 mA, and the RMS over 800 samples
 resolves well below that (see CALCULATIONS.txt).
 
-| Ref | Qty | Part | Spec | Package | LCSC |
-|---|---|---|---|---|---|
-| T1-T4 | 4 | Current transformer, PCB mount, **wire-through hole** | ZMCT103C type: 5 A : 5 mA (1000:1), >= 3 kV isolation, hole >= 5 mm | THT | tbd |
-| R1-R4 | 4 | Burden resistor, **directly at the CT pins** (secondary must never be open, even if the cable is unplugged) | 100 Ohm x1, 150 Ohm x3, 0.1 %, 0.25 W, TCR <= 25 ppm | 1206 | tbd |
-| D1-D4 | 4 | Bidirectional TVS across each burden (inrush / fault) | ~5 V bidirectional, e.g. SMAJ5.0CA or ESD diode | SMA / SOD-323 | tbd |
-| J1 | 1 | RJ45, shielded, THT (pairs: 1-2 CT1, 3-6 CT2, 4-5 CT3, 7-8 CT4) | 8P8C with shield tabs | THT | tbd |
-| H1-H4 | 4 | Mounting holes | M3 | - | - |
-| - | - | Cable-tie slots next to each CT for strain relief of the mains wires | routed slots | - | - |
+Parts: see `kicad/ct_board_bom_jlcpcb.csv` (ZMCT103C, 49.9 Ohm 0.1 %
+burden at the CT pins, SMAJ5.0CA across each burden, shielded RJ45, M3
+holes) plus cable-tie slots next to each CT for strain relief.
 
 ### CT board layout and safety rules
 - **No copper except the CT secondaries, burdens, TVS and RJ45.** A routed
@@ -116,7 +136,7 @@ INA3221 shunt full scale 163.84 mV, LSB 40 uV.
 | Chip / addr | Ch | Rail / load | Expected max | Fuse | Shunt | Full scale | LSB |
 |---|---|---|---|---|---|---|---|
 | U1 / 0x40 (A0=GND) | 1 | **24 V input** from LRS-200-24 | 8.5 A | - (PSU side) | 10 mOhm | 16.4 A | 4 mA |
-| U1 | 2 | 24 V -> Spider (motors + logic + its fans) | 7 A | 10 A | 10 mOhm | 16.4 A | 4 mA |
+| U1 | 2 | 24 V -> Spider (motors + logic + its fans) | 7 A | 10 A | 5 mOhm | 32.8 A | 8 mA |
 | U1 | 3 | 24 V -> SB2040 (hotend + toolhead fans) | 3.5 A | 5 A | 20 mOhm | 8.2 A | 2 mA |
 | U2 / 0x41 (A0=VS) | 1 | 24 V -> chamber heater fan(s) / bed fans | 1.5 A | 3 A | 50 mOhm | 3.3 A | 0.8 mA |
 | U2 | 2 | 24 V -> Nevermore / exhaust | 1.5 A | 3 A | 50 mOhm | 3.3 A | 0.8 mA |
@@ -137,10 +157,10 @@ the 24 V rail:
   by the Spider's own bulk capacitors.
 - Input RC filter on every channel, bulk capacitance and TVS on the 24 V
   bus (the TVS only catches large spikes - it clamps above 26 V).
-- If the rail ever needs to go above 24 V: INA238/INA228 (85 V), rev 1.
+- If the rail ever needs to go above 24 V: INA237 (85 V, in stock) or INA228, rev 1.
 
 ### Mains side (signals from the CT board + AC adapter)
-**MCU: STM32G071KBT6N** (LQFP-32, 128 KB flash, 12-bit ADC up to 2.5 Msps,
+**MCU: STM32G071KBT6** (LQFP-32, GP pinout, 128 KB flash, 12-bit ADC up to 2.5 Msps,
 hardware oversampling, internal oscillator - no crystal or external flash).
 Samples 4 CT channels + mains voltage at ~4 kHz each; over 10 cycles
 (200 ms) computes Vrms, Irms, real power (W), VA, power factor, Hz and
@@ -155,8 +175,9 @@ emonTx method). Calibrate once against a multimeter.
 **Firmware updates from the Pi, no extra wires:** the STM32G0 ROM bootloader
 supports I2C1 (AN2606). The application implements a "jump to bootloader"
 I2C command; the Pi then flashes over the same bus (`stm32flash` supports
-I2C). Recovery: SWD header (ST-Link, or OpenOCD on Pi GPIOs) and a BOOT0
-solder pad. Notes:
+I2C). A blank chip starts the bootloader by itself (empty-flash check).
+Recovery: SWD header (ST-Link, or OpenOCD on Pi GPIOs, connect under reset)
+and a BOOT0 solder pad that only works once nBOOT_SEL = 0. Notes:
 - Use **I2C1 on the pins AN2606 lists for the G07x bootloader** for the
   target interface, so app and bootloader share the bus pins (verify in
   AN2606 before layout).
@@ -166,56 +187,16 @@ solder pad. Notes:
   polling USART3 while the host uses I2C, stretching SCL. Mitigation: pull-ups
   on all bootloader USART RX pins so they idle high, and keep SWD as fallback.
 - BOOT0 is PA14 = SWCLK on the G0 (shared pin); boot selection via option
-  bytes (nBOOT_SEL / nBOOT0). Do not hard-wire PA14.
+  bytes. Factory nBOOT_SEL = 1 means the BOOT0 pin is ignored (AN2606
+  pattern 11): write nBOOT_SEL = 0 on the first SWD flash to make JP1 work.
+  Do not hard-wire PA14.
 
 ### Main board components
-| Ref | Qty | Part | Spec | Package | LCSC |
-|---|---|---|---|---|---|
-| **DC monitoring** | | | | | |
-| U1-U3 | 3 | TI INA3221AIRGVR | 3-ch shunt/bus monitor, I2C, 0-26 V | QFN-16-EP 4x4 | C181255 |
-| RS1, RS2, RS8 | 3 | Current sense resistor | 10 mOhm, 1 %, >= 2 W, TCR <= 100 ppm | 2512 | tbd |
-| RS3, RS6, RS7, RS9 | 4 | Current sense resistor | 20 mOhm, 1 %, >= 1 W, TCR <= 100 ppm | 2512 | tbd |
-| RS4, RS5 | 2 | Current sense resistor | 50 mOhm, 1 %, >= 1 W, TCR <= 100 ppm | 2512 | tbd |
-| R1-R18 | 18 | Input filter resistor (2 per channel) | 10 Ohm, 1 % | 0603 | tbd |
-| C1-C9 | 9 | Input filter capacitor (differential) | 100 nF, 50 V, X7R | 0603 | tbd |
-| C10-C12 | 3 | INA VS decoupling | 100 nF, 16 V, X7R | 0603 | tbd |
-| C14, C15 | 2 | 24 V bus bulk | 10 uF, 50 V, X7R | 1210 | tbd |
-| C16 | 1 | 5 V bus bulk | 10 uF, 16 V, X7R | 1206 | tbd |
-| D1 | 1 | TVS 24 V bus | SMBJ24A, unidirectional | SMB | tbd |
-| D2 | 1 | TVS 5 V bus | SMBJ5.0A, unidirectional | SMB | tbd |
-| R19, R20 | 2 | Pull-up CRITICAL + WARNING (wired-OR: all 3 INAs + STM32 open-drain GPIO) | 10 kOhm | 0603 | tbd |
-| J11 | 1 | Alert output to a Spider endstop input (CRITICAL, GND) - open-drain, works with the Spider's own pull-up | JST-XH 2-pin | THT | tbd |
-| **Distribution** | | | | | |
-| F1-F7 | 7 | PCB fuse holder, mini blade (ATM) | Keystone 3568, 30 A | THT | C5249699 |
-| - | 7 | ATM fuses | 10 A x1, 5 A x2, 3 A x4 | - | - |
-| LED1-LED7 + R | 7+7 | Fuse-blown indicator (LED + resistor across each fuse) | red 0603, resistor for 24 V / 5 V | 0603 | tbd |
-| J1 | 1 | 24 V input terminal | 2-pin 7.62 or 5.08 mm, >= 20 A | THT | tbd |
-| J2 | 1 | 5 V input terminal | 2-pin 5.08 mm, >= 15 A | THT | tbd |
-| J3-J9 | 7 | Output terminals (+ / GND) | 2-pin 5.08 mm, >= 15 A | THT | tbd |
-| **Mains measurement** | | | | | |
-| J20 | 1 | RJ45 from the CT board, shielded, THT (shield to GND here) | 8P8C | THT | tbd |
-| R30-R37 | 8 | Bias divider 1.65 V (one per channel, or one shared + buffer) | 10 kOhm, 0.1 % | 0603 | tbd |
-| C30-C34 | 5 | Bias decoupling | 10 uF, X5R | 0805 | tbd |
-| R38-R42, C35-C39 | 5+5 | Anti-alias RC to each ADC pin | 1 kOhm + 10 nF C0G | 0603 | tbd |
-| D10-D14 | 5 | ADC input clamp to 3V3/GND | BAV99 | SOT-23 | tbd |
-| J21 | 1 | AC adapter input | 2.1 mm barrel jack (AC, polarity irrelevant) | THT | tbd |
-| R43, R44 | 2 | Voltage divider for the AC adapter | 100 kOhm + 10 kOhm, 0.1 % | 0603 | tbd |
-| U10 | 1 | MCU | STM32G071KBT6N | LQFP-32 | C529349 |
-| C40-C44 | 5 | MCU decoupling (VDD/VDDA) | 100 nF x3, 4.7 uF x1, 1 uF on VDDA | 0603/0805 | tbd |
-| FB1 | 1 | Ferrite bead for VDDA/VREF+ | 600 Ohm @ 100 MHz | 0603 | tbd |
-| R45 | 1 | NRST pull-up / filter cap | 100 nF on NRST (internal pull-up) | 0603 | tbd |
-| R46-R48 | 3 | Pull-ups on bootloader USART RX pins (V11.3 issue) | 10 kOhm | 0603 | tbd |
-| SW1 | 1 | Reset button | tactile | SMD | tbd |
-| JP1 | 1 | BOOT0 recovery solder pad (PA14 to 3V3 via 10 k) | solder bridge, open by default | - | - |
-| J22 | 1 | SWD header | 5-pin 2.54 mm: 3V3, SWDIO, SWCLK, NRST, GND | THT | tbd |
-| LED10 + R | 1+1 | Status LED | green | 0603 | tbd |
-| **Power / I2C** | | | | | |
-| U12 | 1 | LDO 5 V -> 3.3 V (MCU + INAs) | AP2112K-3.3 or similar, >= 300 mA | SOT-23-5 | tbd |
-| C13 | 1 | 3V3 bulk | 10 uF, 16 V, X7R | 0805 | tbd |
-| R21, R22 | 2 | I2C pull-up - **DNP** (the Pi has 1.8 k on GPIO2/3) | 4.7 kOhm | 0603 | tbd |
-| J10 | 1 | I2C/alert header to the Pi | JST-XH 6-pin: GND, SDA, SCL, CRITICAL, WARNING, (NC) | THT | tbd |
-| TP | ~15 | Test points (bus V per channel, 3V3, SDA, SCL, ADC inputs, GND) | - | - | - |
-| H1-H4 | 4 | Mounting holes | M3 | - | - |
+The full part list with values, footprints and LCSC numbers is
+`kicad/main_board_bom_jlcpcb.csv` (generated from the schematic). Off the
+JLC BOM: JP1 (solder jumper, copper only), J22 (SWD header, hand-soldered),
+test points and mounting holes; the 7 ATM fuses are bought separately
+(10 A x1, 5 A x2, 3 A x4).
 
 INA address pins hard-wired: U1 A0->GND (0x40), U2 A0->VS (0x41), U3
 A0->SDA (0x42). 0x43 free. INA PV and TC outputs unused (open-drain, NC).
