@@ -31,8 +31,8 @@ DS = {
     "smbj5a": (6.4, 9.2),          # SMAJ5.0CA on the CT board (same VBR/VC)
     "smbj6a": (6.67, 10.3),        # SMBJ6.0A on the 5 V input (MDD datasheet)
     "smaj5ca": (6.4, 9.2),
-    # Diodes AP2112K
-    "ap2112_iout": 0.6, "ap2112_vin_abs": 6.5,
+    # AMS1117-3.3 (AMS datasheet): 1 A, 15 V max input, dropout 1.3 V max @ 1 A, Iq 10 mA max
+    "ldo_iout": 1.0, "ldo_vin_abs": 15.0, "ldo_dropout_max": 1.3, "ldo_iq_max": 10e-3,
 }
 
 def hdr(t):
@@ -99,16 +99,18 @@ for v, r in ((24, 10e3), (5, 1e3)):
     print(f"{v:2d} V rail, R {r/1e3:4.1f}k: LED {il*1e3:4.2f} mA, resistor {il*il*r*1e3:5.1f} mW (0603 = 100 mW)")
 print("Leakage into a disconnected/off load with intact fuse: 0 (LED shorted by the fuse).")
 
-hdr("6. 3V3 budget (AP2112K-3.3 from 5 V)")
+hdr("6. 3V3 budget (AMS1117-3.3 from 5 V)")
 loads = {"3x INA3221 (max)": 3 * DS["ina_iq_max"], "STM32G071 @64 MHz + ADC": 12e-3,
          "status LED": (3.3 - 2.0) / 1e3, "bias divider": 3.3 / 20e3, "alert pull-ups (both low)": 2 * 3.3 / 10e3}
 tot = sum(loads.values())
 for k, v in loads.items():
     print(f"  {k:28s} {v*1e3:6.2f} mA")
-print(f"  total {tot*1e3:.1f} mA of {DS['ap2112_iout']*1e3:.0f} mA; LDO loss {(5-3.3)*tot*1e3:.0f} mW -> OK")
+print(f"  total {tot*1e3:.1f} mA of {DS['ldo_iout']*1e3:.0f} mA; LDO loss incl. Iq {(5-3.3)*(tot+DS['ldo_iq_max'])*1e3:.0f} mW -> OK")
+print(f"  headroom: 4.75 V (5 V -5 %) - 3.3 V = 1.45 V > dropout {DS['ldo_dropout_max']} V (max, at 1 A; ~1.0 V at 20 mA)")
+print("  AMS1117 needs >= 22 uF on the output (C13 22 uF X5R 0805) and >= 10 uF on the input (C17).")
 vbr5, vc5 = DS["smbj6a"]
 print("5 V TVS SMBJ6.0A: VRWM 6.0 V > 5.25 V Pi supply max (SMBJ5.0A leaked above its 5.0 V VRWM).")
-print(f"It clamps at {vc5} V peak > AP2112 {DS['ap2112_vin_abs']} V abs max: surge-only protection,")
+print(f"It clamps at {vc5} V peak < AMS1117 {DS['ldo_vin_abs']} V max input: the TVS protects the LDO,")
 print("the 5 V source must be a regulated supply (it is).")
 
 hdr("7. Current transformers (ZMCT103C, 1000:1)")
