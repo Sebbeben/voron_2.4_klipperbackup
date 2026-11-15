@@ -11,6 +11,12 @@ Written 2026-11-14. Status: DRAFT, not ordered.
   for stock on 2026-11-14.
 - `PowerMonitor.pretty/` + `fp-lib-table` - project footprints: ZMCT103C,
   single Keystone 3557 fuse clip (two per fuse), Kinghelm RJ45 with shield-tab slots.
+- `main_board.kicad_pcb`, `ct_board.kicad_pcb` - footprints PLACED, not routed
+  (`kicad/gen_pcb.py`, 160 x 112 mm and 112 x 36 mm). Nets come from the
+  schematic and footprints are linked by symbol UUID, so KiCad "Update PCB
+  from Schematic" matches them. Re-running gen_pcb.py overwrites the board -
+  stop once parts are moved / routed by hand in KiCad.
+- `netcheck.py` - netlist extractor used to prove re-layouts keep connectivity.
 - `../design_calcs.py` -> `../CALCULATIONS.txt` - all calculations, with the
   datasheet values they use.
 The tables below are the design notes; where they differ, the schematic wins.
