@@ -292,7 +292,9 @@ SHUNT = {  # value -> (lcsc, mpn)
 
 # Parts re-checked 2026-11-14 (stock + datasheet). (lcsc, mpn)
 P = {
-    "100n": ("C346191", "Samsung CL10B104KB8NFNC"),     # 100 nF 50 V X7R 0603 (C14663 out of stock)
+    "100n": ("C14663", "YAGEO CC0603KRX7R9BB104"),      # 100 nF 50 V X7R 0603, JLC Basic (fallback C346191, Extended)
+    "1u": ("C28323", "Samsung CL21B105KBFNNNE"),         # 1 uF 50 V X7R 0805, JLC Basic (C15849 out of stock)
+    "10u50": ("C13585", "Samsung CL31A106KBHNNNE"),      # 10 uF 50 V X5R 1206, JLC Basic
     "2k2": ("C4190", "UNI-ROYAL 0603WAF2201T5E"),        # 2.2k 0603 1 %
     "1R": ("C22936", "UNI-ROYAL 0603WAF100KT5E"),        # 1 ohm 0603 1 %
     "120k": ("C25808", "UNI-ROYAL 0603WAF1203T5E"),      # 120k 0603 1 %
@@ -386,9 +388,9 @@ def main_board():
         # bulk capacitance on the bus side of the input shunt
         yb = y + 22.86
         s.lab(bus, X + 15.24, yb, "L")
-        caps = [("C14", "10u 50V", "C138687", "Samsung CL32B106KBJNNNE", FP_C1210),
-                ("C15", "10u 50V", "C138687", "Samsung CL32B106KBJNNNE", FP_C1210)] if k == 0 else \
-               [("C16", "10u", "C14860", "Samsung CL31B106KAHNNNE", FP_C1206)]
+        caps = [("C14", "10u 50V", P["10u50"][0], P["10u50"][1], FP_C1206),
+                ("C15", "10u 50V", P["10u50"][0], P["10u50"][1], FP_C1206)] if k == 0 else \
+               [("C16", "10u 50V", P["10u50"][0], P["10u50"][1], FP_C1206)]
         xs = [X + 22.86 + i * 12.7 for i in range(len(caps))] + ([X + 22.86 + len(caps) * 12.7] if k == 1 else [])
         s.w((X + 15.24, yb), (xs[-1], yb))
         for i, (ref, val, lc, mp, fp) in enumerate(caps):
@@ -530,7 +532,7 @@ def main_board():
     s.w(en, (en[0] - 2.54, en[1]), (en[0] - 2.54, vin[1]))
     s.j(en[0] - 2.54, vin[1])
     ec = s.vput("Device:C", "C17", "1u", "1", bx + 10.16, vin[1], {"1": W, "2": W},
-                footprint=FP_C0603, lcsc="C15849", mpn="Samsung CL10A105KB8NNNC", note="LDO input")
+                footprint=FP_C0805, lcsc=P["1u"][0], mpn=P["1u"][1], note="LDO input")
     s.j(bx + 10.16, vin[1]); gnd(s, *ec["2"], 5.08)
     gnd(s, *lg)
     yv = vout[1]
@@ -547,7 +549,7 @@ def main_board():
     for k, (ref, val, lc, mp, fp, nt) in enumerate([
             ("C40", "4u7", "C1779", "Samsung CL21A475KAQNNNE", FP_C0805, ""),
             ("C41", "100n", P["100n"][0], P["100n"][1], FP_C0603, "Close to VDD pin 4"),
-            ("C42", "1u", "C15849", "Samsung CL10A105KB8NNNC", FP_C0603, "")]):
+            ("C42", "1u", P["1u"][0], P["1u"][1], FP_C0805, "")]):
         x = bx + 73.66 + k * 10.16
         ec = s.vput("Device:C", ref, val, "1", x, yv, {"1": W, "2": W}, footprint=fp, lcsc=lc, mpn=mp, note=nt)
         s.j(x, yv); gnd(s, *ec["2"], 5.08)
