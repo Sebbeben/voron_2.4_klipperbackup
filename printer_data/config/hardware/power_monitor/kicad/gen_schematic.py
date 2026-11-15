@@ -112,6 +112,8 @@ class Sheet:
         if lib_id not in self.libs:
             if lib_id == "PowerMonitor:INA3221":
                 self.libs[lib_id] = ina_symbol()
+            elif lib_id == "PowerMonitor:TVS_Uni":
+                self.libs[lib_id] = tvs_uni_symbol()
             elif lib_id == "PowerMonitor:ZMCT103C":
                 self.libs[lib_id] = ct_symbol()
             elif lib_id == "PowerMonitor:STM32G071KBTx":
@@ -305,7 +307,18 @@ def tvs_lib(name):
         kilib.raw_symbol("Diode", name)
         return "Diode:" + name
     except ValueError:
-        return "Device:D_TVS"
+        # KiCad has no SMBJ symbols; Device:D_TVS is drawn bidirectional -> own unidirectional copy
+        return "PowerMonitor:TVS_Uni" if name.endswith("A") and not name.endswith("CA") else "Device:D_TVS"
+
+def tvs_uni_symbol():
+    """Unidirectional TVS graphics from Diode:SMAJ24A (pin 1 = cathode, pin 2 = anode)."""
+    b = kilib.flat_symbol("Diode", "SMAJ24A")
+    b = b.replace('(symbol "Diode:SMAJ24A"', '(symbol "PowerMonitor:TVS_Uni"', 1)
+    b = re.sub(r'\(symbol "(SMAJ24A|SM6T6V8A)_', '(symbol "TVS_Uni_', b)
+    b = re.sub(r'\(property "Value" "[^"]*"', '(property "Value" "TVS_Uni"', b, 1)
+    b = re.sub(r'\(property "Footprint" "[^"]*"', '(property "Footprint" ""', b, 1)
+    b = re.sub(r'\(property "Description" "[^"]*"', '(property "Description" "Unidirectional TVS diode, pin 1 = cathode"', b, 1)
+    return b
 
 def tvs(s, name, ref, x, y, rail, lcsc, mpn, fp):
     lib_id = tvs_lib(name)
