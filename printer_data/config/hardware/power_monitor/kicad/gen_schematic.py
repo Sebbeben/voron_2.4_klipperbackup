@@ -18,6 +18,10 @@ DATE = "2026-11-14"
 def U():
     return str(uuid.uuid4())
 
+def sym_uuid(project, ref):
+    """Stable symbol UUID, so the PCB (gen_pcb.py) stays linked to the schematic after re-generation."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, "powermonitor/%s/%s" % (project, ref)))
+
 W = "~"  # net placeholder: pin is connected by a wire drawn by the caller
 
 # --------------------------------------------------------------------------
@@ -103,7 +107,7 @@ def ina_symbol():
 class Sheet:
     def __init__(self, project, title, paper, comment):
         self.project, self.title, self.paper, self.comment = project, title, paper, comment
-        self.root = U()
+        self.root = str(uuid.uuid5(uuid.NAMESPACE_URL, "powermonitor/" + project))   # stable across runs
         self.libs = {}       # lib_id -> block
         self.items = []
         self.refs = set()
@@ -186,7 +190,8 @@ class Sheet:
         self.items.append(
             '(symbol (lib_id "%s") (at %.2f %.2f %d) (unit 1) (exclude_from_sim no) (in_bom %s) (on_board yes) (dnp %s) (uuid "%s") %s %s '
             '(instances (project "%s" (path "/%s" (reference "%s") (unit 1)))))'
-            % (lib_id, x, y, rot, "no" if ref.startswith("#") or not in_bom else "yes", "yes" if dnp else "no", U(), ptxt, pin_txt,
+            % (lib_id, x, y, rot, "no" if ref.startswith("#") or not in_bom else "yes", "yes" if dnp else "no",
+               sym_uuid(self.project, ref), ptxt, pin_txt,
                self.project, self.root, ref))
         for num, (name, px, py, pa, etype) in pins.items():
             ax, ay, aa = ends[num]
