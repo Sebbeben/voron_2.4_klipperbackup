@@ -756,7 +756,7 @@ def main_board():
                lcsc=P["100R"][0], mpn=P["100R"][1])
         s.lab(en_net, gx - 17.78, gy, "L")
         s.w((gx - 17.78, gy), (gx - 15.24, gy))
-        s.w((gx - 7.62, gy), gx)
+        s.w((gx - 7.62, gy), (gx, gy))
         ep = s.vput("Device:R", rpd, "100k", "1", gx - 5.08, gy, {"1": W, "2": W}, footprint=FP_R0603,
                     lcsc=P["100k"][0], mpn=P["100k"][1],
                     note="Off while the MCU is in reset" if ref == "Q1" else "Off with the Pi cable unplugged",
