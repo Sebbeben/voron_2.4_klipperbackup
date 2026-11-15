@@ -256,112 +256,115 @@ def build(board, sch, size, place, texts=(), copper_oz=2):
     return errs, boxes
 
 # --------------------------------------------------------------------------
-# Main board placement: (courtyard centre x, y in mm from the board top-left corner, rotation)
+# Main board placement: (courtyard centre x, y in mm from the board top-left corner as seen from
+# the TOP (SMD) side, rotation, side). Side "B" = through-hole parts on the back, hand-soldered;
+# the board is mounted with the back (THT side: terminals, fuses, LEDs) facing out.
 # --------------------------------------------------------------------------
-# 100 x 100 mm (JLC price step). Power flows down: J1 (left edge) -> RS1 -> 24V_BUS band
-# (F.Cu pour, y ~60-66) -> one column per output: shunt, fuse (2 clips, vertical), terminal on the
-# bottom edge. 5 V: J2 (right edge) -> RS8 -> 5V_BUS band (right end) -> column 7 (Pi).
-# INA3221 + filter row above the band (Kelvin pairs on B.Cu under the pour).
-# Top edge: relay coil, Pi header, alert out, AC jack, RJ45. MCU + mains analog in the middle,
-# away from the high-current copper. See the memory note / BOM.md for the spacing rules.
-MAIN_W, MAIN_H = 100.0, 100.0
+# Top side (JLC SMT): shunts sit between the two fuse-clip pad rows of their column, INA3221 +
+# filter row above the 24V_BUS band (F.Cu pour, y ~44-48), MCU / mains analog / relay driver in
+# the upper part over the back-side connectors (never on a THT pad, 1 mm soldering clearance).
+# Back side: 7 output terminals on the bottom edge, fuse (2 clips, 9.73 mm) + 3 mm LED per column,
+# inputs on the left/right edges, relay coil / Pi / alert / AC jack / RJ45 on the top edge.
+MAIN_W, MAIN_H = 100.0, 80.0
 PITCH = 12.8
-COL = [11.55 + PITCH * k for k in range(7)]      # output columns F1..F7 (terminal courtyard centres)
+COL = [11.55 + PITCH * k for k in range(7)]      # output columns F1..F7
 def main_place():
+    H = MAIN_H
     P = {}
     shunts = ["RS2", "RS3", "RS4", "RS5", "RS6", "RS7", "RS9"]
     for k, x in enumerate(COL):
         n = k + 1
-        P["J%d" % (n + 2)] = (x, MAIN_H - 5.4, 0)          # wire entry down, on the bottom edge
-        P["F%dB" % n] = (x, 86.3, 270)                      # load-side clip
-        P["F%dA" % n] = (x, 86.3 - 9.73, 270)               # supply-side clip (ATM fuse = 9.73 mm)
-        P[shunts[k]] = (x, 69.8, 270)                       # pin 1 (bus side) on top
-        P["RL%d" % n] = (x + PITCH / 2, 76.5, 90)           # in the gap between columns
-        P["LEDF%d" % n] = (x + PITCH / 2, 84.5, 270)
-    # 24 V input, left edge (wire entry left)
-    P["J1"] = (5.4, 54.0, 270)
-    P["RS1"] = (14.5, 54.5, 270)                         # 24V_IN top -> 24V_BUS bottom (band)
-    P["D1"] = (19.5, 51.0, 90)
-    P["C14"] = (24.5, 56.5, 90)
-    P["C15"] = (29.0, 56.5, 90)
-    P["TP1"] = (13.0, 48.0, 0)
-    P["TP2"] = (33.0, 58.0, 0)
-    # 5 V input, right edge
-    P["J2"] = (MAIN_W - 5.4, 54.0, 90)
-    P["RS8"] = (86.0, 54.5, 270)                         # 5V_IN top -> 5V_BUS bottom
-    P["D2"] = (80.5, 51.0, 90)
-    P["C16"] = (76.0, 56.5, 90)
-    P["TP3"] = (71.5, 58.0, 0)
+        P["J%d" % (n + 2)] = (x, H - 5.4, 180, "B")        # wire entry down
+        P["F%dB" % n] = (x, H - 13.7, 270, "B")            # load-side clip
+        P["F%dA" % n] = (x, H - 13.7 - 9.73, 270, "B")     # supply-side clip (ATM = 9.73 mm)
+        P["LEDF%d" % n] = (x, H - 29.4, 0, "B")             # blown-fuse LED, visible next to the fuse
+        P[shunts[k]] = (x, H - 18.57, 0)                    # top side, between the clip pad rows
+        P["RL%d" % n] = (x + 4.6, H - 29.4, 90)
+    # 24 V input (left edge) / 5 V input (right edge), wire entry outward
+    P["J1"] = (5.4, 38.0, 90, "B")
+    P["D1"] = (10.5, 38.0, 90)
+    P["RS1"] = (15.0, 38.0, 270)
+    P["C14"] = (20.0, 46.0, 0)
+    P["C15"] = (26.0, 46.0, 0)
+    P["J2"] = (MAIN_W - 5.4, 38.0, 270, "B")
+    P["D2"] = (MAIN_W - 10.5, 38.0, 90)
+    P["RS8"] = (MAIN_W - 15.0, 38.0, 270)
+    P["C16"] = (80.0, 46.0, 0)
     # INA row + filter triplets (R IN+ side, C, R IN- side per channel)
-    for i, (u, x) in enumerate((("U1", 24.0), ("U2", 50.0), ("U3", 76.0))):
-        P[u] = (x, 37.0, 0)
-        P["C%d" % (10 + i)] = (x + 5.0, 34.5, 90)
+    for i, (u, x) in enumerate((("U1", 30.0), ("U2", 50.0), ("U3", 70.0))):
+        P[u] = (x, 35.0, 0)
+        P["C%d" % (10 + i)] = (x + 5.0, 32.5, 90)
     for ch in range(1, 10):
-        x = 16.0 + (ch - 1) * 8.0
-        P["R%d" % (2 * ch - 1)] = (x - 2.2, 45.0, 90)
-        P["C%d" % ch] = (x, 45.0, 90)
-        P["R%d" % (2 * ch)] = (x + 2.2, 45.0, 90)
-    # top edge connectors
-    P["J12"] = (13.5, 5.4, 180)                          # relay coil, wire entry up
-    P["J10"] = (30.5, 3.5, 0)                            # Pi header
-    P["J11"] = (46.0, 3.5, 0)                            # alert out to the Spider
-    P["J21"] = (61.0, 8.0, 270)                          # AC jack, opening up
-    P["J20"] = (82.0, 9.5, 180)                          # RJ45, opening up
-    # relay driver under its terminal
-    P["F8"] = (3.0, 16.5, 90)
-    P["D15"] = (7.5, 16.5, 90)
-    P["R87"] = (11.5, 15.0, 90)
-    P["LED11"] = (11.5, 20.0, 90)
-    P["Q1"] = (16.5, 15.0, 0)
-    P["Q2"] = (16.5, 21.0, 0)
-    P["R83"] = (21.5, 13.5, 0)
-    P["R84"] = (21.5, 16.0, 0)
-    P["R85"] = (21.5, 19.5, 0)
-    P["R86"] = (21.5, 22.0, 0)
-    # Pi pull-ups + test points under the Pi header
+        x = 22.0 + (ch - 1) * 7.4
+        P["R%d" % (2 * ch - 1)] = (x - 2.2, 41.0, 90)
+        P["C%d" % ch] = (x, 41.0, 90)
+        P["R%d" % (2 * ch)] = (x + 2.2, 41.0, 90)
+    # back side, top edge connectors (openings up)
+    P["J12"] = (13.5, 5.4, 0, "B")                      # relay coil
+    P["J10"] = (30.0, 3.5, 0, "B")                      # Pi header
+    P["J11"] = (45.0, 3.5, 0, "B")                      # alert out
+    P["J21"] = (58.0, 8.0, 270, "B")                    # AC jack
+    P["J20"] = (77.0, 9.4, 0, "B")                      # RJ45
+    P["J22"] = (24.5, 14.0, 0, "B")                     # SWD header
+    P["LED11"] = (8.0, 25.0, 0, "B")                    # relay energised
+    P["LED10"] = (54.0, 28.0, 0, "B")                   # MCU status
+    # relay driver (top)
+    P["F8"] = (3.0, 15.0, 90)
+    P["D15"] = (7.5, 15.5, 90)
+    P["R87"] = (11.5, 14.0, 90)
+    P["Q1"] = (15.5, 14.5, 0)
+    P["Q2"] = (15.5, 21.0, 0)
+    P["R83"] = (20.0, 13.0, 90)
+    P["R84"] = (20.0, 17.0, 90)
+    P["R85"] = (20.0, 21.0, 90)
+    P["R86"] = (20.0, 25.0, 90)
+    # Pi pull-ups + test points
     for i, r in enumerate(["R19", "R20", "R21", "R22"]):
-        P[r] = (26.0 + i * 2.5, 10.5, 90)
+        P[r] = (28.5 + i * 2.0, 9.0, 90)
     for i, r in enumerate(["TP7", "TP8", "TP9", "TP10"]):
-        P[r] = (38.0 + i * 3.0, 10.0, 0)
-    # MCU block (middle)
-    P["U10"] = (44.0, 23.0, 0)
-    P["C40"] = (36.5, 14.5, 90)
-    P["C41"] = (38.5, 14.5, 90)
-    P["C42"] = (40.5, 14.5, 90)
-    P["C43"] = (36.5, 23.0, 90)
-    P["SW1"] = (31.0, 22.5, 90)
-    P["J22"] = (39.5, 32.0, 90)                          # SWD header (inside, not on the edge)
-    P["R64"] = (49.5, 31.5, 0)
-    P["JP1"] = (53.5, 31.5, 0)
-    P["R65"] = (51.0, 17.0, 90)
-    P["LED10"] = (53.0, 17.0, 90)
-    for i, r in enumerate(["R60", "R61", "R62"]):
-        P[r] = (51.0 + i * 2.0, 23.5, 90)
-    P["FB1"] = (34.5, 28.5, 0)
-    P["TP4"] = (28.0, 30.5, 0)
-    P["TP5"] = (31.0, 30.5, 0)
-    # 3V3 LDO next to the 5 V input
-    P["U12"] = (89.0, 41.0, 0)
-    P["C17"] = (85.0, 41.0, 90)
-    P["C13"] = (93.0, 41.0, 90)
-    # mains analog between the AC jack / RJ45 and the MCU
-    P["R72"] = (56.5, 20.0, 90)
-    P["R73"] = (58.5, 20.0, 90)
-    P["R70"] = (92.5, 21.5, 90)
-    P["R71"] = (94.5, 21.5, 90)
-    P["C30"] = (96.5, 21.5, 90)
-    P["C31"] = (92.5, 26.0, 90)
-    P["TP6"] = (95.5, 26.5, 0)
-    for i in range(5):                 # channel i: series R, cap, clamp, pull-down (CT only)
-        x = 63.0 + i * 5.6
-        P["R%d" % (74 + i)] = (x - 1.0, 22.5, 90)
-        P["C%d" % (35 + i)] = (x + 1.0, 22.5, 90)
-        P["D%d" % (10 + i)] = (x, 27.5, 0)
+        P[r] = (41.5 + i * 3.0, 10.0, 0)
+    # MCU (top)
+    P["U10"] = (40.0, 20.0, 0)
+    P["C40"] = (32.5, 13.0, 90)
+    P["C41"] = (34.5, 13.0, 90)
+    P["C42"] = (36.5, 13.0, 90)
+    P["C43"] = (33.8, 19.0, 90)
+    P["SW1"] = (29.5, 23.0, 90)
+    P["FB1"] = (33.0, 27.5, 0)
+    P["R60"] = (48.0, 15.0, 0)
+    P["R61"] = (48.0, 17.5, 0)
+    P["R62"] = (48.0, 20.0, 0)
+    P["R64"] = (48.0, 23.0, 0)
+    P["JP1"] = (48.0, 26.0, 0)
+    P["R65"] = (44.0, 28.0, 0)
+    P["TP4"] = (36.5, 29.5, 0)
+    P["TP5"] = (39.5, 29.5, 0)
+    # mains analog (top), over the AC jack / RJ45 bodies but clear of their pins
+    P["R72"] = (57.0, 20.5, 90)
+    P["R73"] = (59.0, 20.5, 90)
+    for i in range(5):
+        x = 62.0 + i * 5.2
+        P["R%d" % (74 + i)] = (x - 1.0, 20.5, 90)
+        P["C%d" % (35 + i)] = (x + 1.0, 20.5, 90)
+        P["D%d" % (10 + i)] = (x, 25.5, 0)
         if i < 4:
-            P["R%d" % (79 + i)] = (x, 31.5, 90)
-    # mounting holes: top corners and above the bus band ends
+            P["R%d" % (79 + i)] = (x, 29.5, 90)
+    P["R70"] = (89.0, 20.0, 90)
+    P["R71"] = (91.0, 20.0, 90)
+    P["C30"] = (93.0, 20.0, 90)
+    P["C31"] = (95.0, 20.0, 90)
+    P["TP6"] = (97.5, 23.0, 0)
+    # 3V3 LDO next to the 5 V input
+    P["U12"] = (91.0, 28.0, 0)
+    P["C17"] = (87.0, 28.0, 90)
+    P["C13"] = (95.0, 28.0, 90)
+    # test points on the power rails
+    P["TP1"] = (12.5, 32.0, 0)
+    P["TP2"] = (31.0, 46.0, 0)
+    P["TP3"] = (74.5, 46.0, 0)
+    # mounting holes
     for r, (x, y) in {"H1": (3.5, 3.5), "H2": (MAIN_W - 3.5, 3.5),
-                      "H3": (3.5, 64.0), "H4": (MAIN_W - 3.5, 64.0)}.items():
+                      "H3": (3.5, 48.0), "H4": (MAIN_W - 3.5, 48.0)}.items():
         P[r] = (x, y, 0)
     return P
 
@@ -385,7 +388,7 @@ def ct_place():
 
 if __name__ == "__main__":
     e1, _ = build("main_board", "main_board.kicad_sch", (MAIN_W, MAIN_H), main_place(),
-                  texts=[("POWER MONITOR rev 0 - 24.0 V MAX", 30.0, 52.5, 1.2)])
+                  texts=[("POWER MONITOR rev 0 - 24.0 V MAX", 36.0, 29.5, 1.0)])
     e2, _ = build("ct_board", "ct_board.kicad_sch", (CT_W, CT_H), ct_place(),
                   texts=[("NO MAINS COPPER - single L wire through each CT", 9.0, 23.0, 1.0)])
     sys.exit(1 if e1 or e2 else 0)
