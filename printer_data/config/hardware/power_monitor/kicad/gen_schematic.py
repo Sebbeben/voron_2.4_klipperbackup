@@ -872,14 +872,23 @@ def ct_board():
     for i, (t, r, val, lc, mp, ct, name) in enumerate(cts):
         x, y = 30.48 + i * 55.88, 76.2
         s.text(name, x - 10.16, y - 17.78, 1.5)
-        s.part("PowerMonitor:ZMCT103C", t, "ZMCT103C", x, y, {"3": ct + "_S", "4": ct + "_R"},
-               "PowerMonitor:ZMCT103C", "C94571", "ZHE MING LANG XI ZMCT103C",
-               note="Primary = mains wire through the dia 5 mm hole (no primary pins). Pad 3 = CT pin 1* (dot). All CTs same direction (P1* side = supply side)")
-        R(s, r, val, x + 20.32, y + 15.24, ct + "_S", ct + "_R", lc, mp, FP_R1206,
-          note="Burden directly at the CT pins - secondary must never be open")
-        s.part("Diode:SMAJ5.0CA" if tvs_lib("SMAJ5.0CA") != "Device:D_TVS" else "Device:D_TVS",
-               "D%d" % (i + 1), "SMAJ5.0CA", x + 20.32, y + 35.56, {"1": ct + "_S", "2": ct + "_R"},
-               "Diode_SMD:D_SMA", "C320524", "LGE SMAJ5.0CA", note="Bidirectional clamp across the burden")
+        e = s.part("PowerMonitor:ZMCT103C", t, "ZMCT103C", x, y, {"3": W, "4": W},
+                   "PowerMonitor:ZMCT103C", "C94571", "ZHE MING LANG XI ZMCT103C",
+                   note="Primary = mains wire through the dia 5 mm hole (no primary pins). Pad 3 = CT pin 1* (dot). All CTs same direction (P1* side = supply side)",
+                   fields=((-5.08, -10.16, "left"), (-5.08, 10.16, "left")))
+        (xs, ys), (xr, yr) = e["3"], e["4"]           # pin 3 (S) bottom, pin 4 (R) top
+        s.w((xr, yr), (x + 38.1, yr)); s.w((xs, ys), (x + 38.1, ys))
+        s.lab(ct + "_R", x + 38.1, yr, "R"); s.lab(ct + "_S", x + 38.1, ys, "R")
+        # burden directly at the CT pins - secondary must never be open
+        er = s.vput("Device:R", r, val, "2", x + 17.78, yr, {"1": W, "2": W}, footprint=FP_R1206, lcsc=lc, mpn=mp,
+                    note="Burden directly at the CT pins - secondary must never be open")
+        s.w(er["1"], (x + 17.78, ys))
+        s.j(x + 17.78, yr); s.j(x + 17.78, ys)
+        lib = "Diode:SMAJ5.0CA" if tvs_lib("SMAJ5.0CA") != "Device:D_TVS" else "Device:D_TVS"
+        ed = s.vput(lib, "D%d" % (i + 1), "SMAJ5.0CA", "2", x + 27.94, yr, {"1": W, "2": W}, footprint="Diode_SMD:D_SMA",
+                    lcsc="C320524", mpn="LGE SMAJ5.0CA", note="Bidirectional clamp across the burden")
+        s.w(ed["1"], (x + 27.94, ys))
+        s.j(x + 27.94, yr); s.j(x + 27.94, ys)
     p = {}
     for ct, (a, b) in pairs.items():
         p[a], p[b] = ct + "_S", ct + "_R"
