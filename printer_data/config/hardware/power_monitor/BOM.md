@@ -12,7 +12,10 @@ Written 2026-11-14. Status: DRAFT, not ordered.
 - `PowerMonitor.pretty/` + `fp-lib-table` - project footprints: ZMCT103C,
   single Keystone 3557 fuse clip (two per fuse), Kinghelm RJ45 with shield-tab slots.
 - `main_board.kicad_pcb`, `ct_board.kicad_pcb` - footprints PLACED, not routed
-  (`kicad/gen_pcb.py`, 100 x 100 mm and 100 x 30 mm). 3D models: KiCad 10
+  (`kicad/gen_pcb.py`, 100 x 80 mm and 100 x 30 mm). All THT parts sit on the
+  BACK and are hand-soldered (no JLC THT fee); the board is mounted with the
+  back (terminals, fuses, 3 mm LEDs) facing out. JLC assembles only the
+  top-side SMD parts: `*_bom_jlcpcb.csv`; THT order list: `*_hand_solder.csv`. 3D models: KiCad 10
   library STEP via `${KICAD10_3DMODEL_DIR}`, ZMCT103C vendor STEP and a simple
   Keystone 3557 clip body in `kicad/PowerMonitor.3dshapes/`. Nets come from the
   schematic and footprints are linked by symbol UUID, so KiCad "Update PCB
@@ -85,6 +88,23 @@ Open from the review:
 - **No reverse-polarity protection on J1/J2**: a reversed input kills U1-U3
   (IN+- min -0.3 V). Options: polarized connector (e.g. XT60) or a P-FET.
 - RJ45 footprint still to be checked against the Kinghelm drawing / part.
+
+## Cost (LCSC/JLC prices fetched 2026-11-15, USD)
+| Item | Per board set | Order of 5 sets |
+|---|---|---|
+| Main board SMD (JLC assembly, 105 parts) | 12.33 | ~62-68 (incl. MOQ/attrition) |
+| Main board THT (LCSC, hand-soldered, 37 parts) | 6.79 | 35.43 (MOQ rounding) |
+| CT board SMD (8 parts) | 1.30 | 6.50 |
+| CT board THT (4x ZMCT103C + RJ45) | 2.09 | 10.46 |
+| JLC Extended part fee, $3 x 15 types (13 main + 2 CT) | - | 45.00 |
+| **Parts total** | **22.51** | **~160-166** |
+
+Not included: PCB fabrication (2 layers, 2 oz) and assembly setup/stencil, shipping/VAT, ATM fuses,
+AC-AC adapter, relay/contactor, Cat6 cable. Biggest parts: STM32G071KBT6 (~$3.1), 3x INA3221 (~$2.1 each).
+JLC Basic/Extended from jlcpcb.com/partdetail: Extended = INA3221, STM32, AP2112K, shunts (4 types),
+SMBJ24A, SMBJ6.0A, 1 A fuse, ferrite, 0.1 % 10k, 10 nF C0G (+ CT: 49.9R, SMAJ5.0CA). Capacitors were
+moved to Basic parts on 2026-11-15 (100 nF C14663, 1 uF C28323 0805, 10 uF 50 V C13585 1206; C15849 was
+out of stock).
 
 ## Concept - two boards
 | | **CT board** (in the mains area) | **Main board** (next to the Pi) |
