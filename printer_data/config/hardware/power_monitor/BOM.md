@@ -13,8 +13,8 @@ Written 2026-11-14. Status: DRAFT, not ordered.
   single Keystone 3557 fuse clip (two per fuse), Kinghelm RJ45 with shield-tab slots.
 - `main_board.kicad_pcb`, `ct_board.kicad_pcb` - footprints PLACED, not routed
   (`kicad/gen_pcb.py`, 100 x 100 mm and 100 x 30 mm). 3D models: KiCad 10
-  library STEP via `${KICAD10_3DMODEL_DIR}`, simple bodies for ZMCT103C and the
-  Keystone 3557 clip in `kicad/PowerMonitor.3dshapes/`. Nets come from the
+  library STEP via `${KICAD10_3DMODEL_DIR}`, ZMCT103C vendor STEP and a simple
+  Keystone 3557 clip body in `kicad/PowerMonitor.3dshapes/`. Nets come from the
   schematic and footprints are linked by symbol UUID, so KiCad "Update PCB
   from Schematic" matches them. Re-running gen_pcb.py overwrites the board -
   stop once parts are moved / routed by hand in KiCad.
