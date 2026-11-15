@@ -310,16 +310,18 @@ def main_place():
 # --------------------------------------------------------------------------
 # CT board placement
 # --------------------------------------------------------------------------
-CT_W, CT_H = 112.0, 36.0
+CT_W, CT_H = 100.0, 27.0
 def ct_place():
+    """One row of CTs: each mains wire passes through its CT along Y (10 mm above the board) and
+    must not run over another tall part, so the RJ45 sits to the right of the row."""
     P = {}
     for i in range(4):
-        x = 12.0 + i * 23.0
-        P["T%d" % (i + 1)] = (x, 13.0, 0)          # all CTs the same direction (P1* side = supply side)
-        P["R%d" % (i + 1)] = (x - 3.0, 26.0, 0)
-        P["D%d" % (i + 1)] = (x + 5.0, 26.0, 0)
-    P["J1"] = (CT_W - 9.5, 17.0, 90)                # RJ45 opening to the right edge
-    for r, (x, y) in {"H1": (3.5, 3.5), "H2": (3.5, CT_H - 3.5), "H3": (91.0, 3.5), "H4": (91.0, CT_H - 3.5)}.items():
+        x = 11.6 + i * 19.7
+        P["T%d" % (i + 1)] = (x, 7.0, 0)           # all CTs the same direction (P1* side = supply side)
+        P["R%d" % (i + 1)] = (x - 4.0, 17.5, 0)
+        P["D%d" % (i + 1)] = (x + 4.5, 17.5, 0)
+    P["J1"] = (90.4, 13.5, 90)                      # RJ45 opening to the right edge
+    for r, (x, y) in {"H1": (3.5, 23.5), "H2": (41.5, 23.5), "H3": (77.0, 23.5)}.items():
         P[r] = (x, y, 0)
     return P
 
@@ -327,5 +329,5 @@ if __name__ == "__main__":
     e1, _ = build("main_board", "main_board.kicad_sch", (MAIN_W, MAIN_H), main_place(),
                   texts=[("POWER MONITOR rev 0 - 24.0 V MAX", 30.0, 52.5, 1.2)])
     e2, _ = build("ct_board", "ct_board.kicad_sch", (CT_W, CT_H), ct_place(),
-                  texts=[("NO MAINS COPPER - single L wire through each CT", 9.0, 33.0, 1.2)])
+                  texts=[("NO MAINS COPPER - single L wire through each CT", 9.0, 25.5, 1.0)])
     sys.exit(1 if e1 or e2 else 0)
