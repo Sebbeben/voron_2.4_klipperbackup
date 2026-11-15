@@ -523,22 +523,22 @@ def main_board():
     bx, by = 25.4, 355.6
     s.text("3V3 + STM32G071 (mains V/I/W, I2C target 0x50)", bx, by - 12.7)
     # LDO 5 V -> 3V3, then ferrite to the MCU supply
-    e = s.part("Regulator_Linear:AP2112K-3.3", "U12", "AP2112K-3.3", bx + 33.02, by + 10.16,
-               {"1": W, "2": W, "3": W, "5": W}, None, "C51118", "Diodes AP2112K-3.3TRG1",
-               fields=((-7.62, -7.62, "left"), (-7.62, -5.08, "left")))
-    vin, en, lg, vout = e["1"], e["3"], e["2"], e["5"]
+    # AMS1117-3.3 (JLC Basic C6186): 5 V in, ~16 mA load -> dropout well below the 1.7 V headroom.
+    # Datasheet: >= 10 uF in, >= 22 uF out for stability.
+    e = s.part("Regulator_Linear:AMS1117-3.3", "U12", "AMS1117-3.3", bx + 33.02, by + 7.62,
+               {"1": W, "2": W, "3": W}, None, "C6186", "AMS AMS1117-3.3",
+               fields=((-5.08, -5.08, "left"), (-5.08, -2.54, "left")))
+    vin, lg, vout = e["3"], e["1"], e["2"]
     s.lab("5V_BUS", bx, vin[1], "L")
     s.w((bx, vin[1]), vin)
-    s.w(en, (en[0] - 2.54, en[1]), (en[0] - 2.54, vin[1]))
-    s.j(en[0] - 2.54, vin[1])
-    ec = s.vput("Device:C", "C17", "1u", "1", bx + 10.16, vin[1], {"1": W, "2": W},
-                footprint=FP_C0805, lcsc=P["1u"][0], mpn=P["1u"][1], note="LDO input")
+    ec = s.vput("Device:C", "C17", "10u", "1", bx + 10.16, vin[1], {"1": W, "2": W},
+                footprint=FP_C0805, lcsc="C15850", mpn="Samsung CL21A106KAYNNNE", note="LDO input (AMS1117: >= 10 uF)")
     s.j(bx + 10.16, vin[1]); gnd(s, *ec["2"], 5.08)
     gnd(s, *lg)
     yv = vout[1]
     s.w(vout, (bx + 60.96, yv))
-    ec = s.vput("Device:C", "C13", "10u", "1", bx + 48.26, yv, {"1": W, "2": W},
-                footprint=FP_C0805, lcsc="C15850", mpn="Samsung CL21A106KAYNNNE", note="LDO output / 3V3 bulk")
+    ec = s.vput("Device:C", "C13", "22u", "1", bx + 48.26, yv, {"1": W, "2": W},
+                footprint=FP_C0805, lcsc="C45783", mpn="Samsung CL21A226MAQNNNE", note="LDO output, AMS1117 needs >= 22 uF")
     s.j(bx + 48.26, yv); gnd(s, *ec["2"], 5.08)
     s.lab("+3V3", bx + 53.34, yv, "R")
     s.hput("Device:FerriteBead_Small", "FB1", "600R@100MHz", "1", bx + 60.96, yv, {"1": W, "2": W},
