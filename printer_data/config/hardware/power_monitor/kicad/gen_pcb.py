@@ -52,7 +52,7 @@ def children(block):
 def courtyard(text):
     xs, ys = [], []
     for c in children(text):
-        if not c.startswith("(fp_") or '(layer "F.CrtYd")' not in c:
+        if not c.startswith("(fp_") or ('(layer "F.CrtYd")' not in c and '(layer "B.CrtYd")' not in c):
             continue
         pts = [tuple(map(float, p)) for p in re.findall(r'\((?:start|end|xy|mid|center) ([-\d.]+) ([-\d.]+)\)', c)]
         if c.startswith("(fp_circle"):
