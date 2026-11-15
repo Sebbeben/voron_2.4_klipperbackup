@@ -1,3 +1,0 @@
-#VRML V2.0 utf8
-# Generated for the power monitor project - simplified body for clearance checks
-Transform { translation 0.0000 0.0000 1.2500 children [ Shape { appearance Appearance { material Material { diffuseColor 0.80 0.80 0.78 } } geometry Box { size 1.8504 1.5000 2.5000 } } ] }

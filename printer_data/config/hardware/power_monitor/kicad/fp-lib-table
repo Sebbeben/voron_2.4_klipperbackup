@@ -1,4 +1,0 @@
-(fp_lib_table
-  (version 7)
-  (lib (name "PowerMonitor")(type "KiCad")(uri "${KIPRJMOD}/PowerMonitor.pretty")(options "")(descr "Project footprints"))
-)
