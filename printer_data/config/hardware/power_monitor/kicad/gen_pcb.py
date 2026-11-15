@@ -77,15 +77,33 @@ def rot(x, y, a):
     c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
     return x * c + y * s, -x * s + y * c
 
+def _num(v):
+    s = ("%.4f" % v).rstrip("0").rstrip(".")
+    return "0" if s in ("-0", "") else s
+
 def flip_text(t):
     """Mirror a footprint to the back side (KiCad top/bottom flip in local coordinates):
-    y -> -y, local angles negated, F.* layers -> B.*, texts mirrored."""
+    y -> -y, local angles negated (done in fp_block), F.* layers -> B.*, texts mirrored."""
     t = re.sub(r'\((at|start|end|center|mid|xy) ([-\d.]+) ([-\d.]+)',
-               lambda m: "(%s %s %s" % (m.group(1), m.group(2), repr(-float(m.group(3)) + 0.0).rstrip("0").rstrip(".") if float(m.group(3)) else "0"), t)
+               lambda m: "(%s %s %s" % (m.group(1), m.group(2), _num(-float(m.group(3)))), t)
     t = re.sub(r'"F\.(SilkS|Fab|CrtYd|Paste|Mask|Cu|Adhes)"', r'"B.\1"', t)
-    t = t.replace("(justify left)", "(justify left mirror)").replace("(justify right)", "(justify right mirror)")
-    t = re.sub(r'\(effects \(font ([^)]*\)[^)]*)\)\)', lambda m: m.group(0) if "mirror" in m.group(0) else m.group(0)[:-1] + " (justify mirror))", t)
-    return t
+    out, pos = [], 0
+    while True:
+        k = t.find("(effects", pos)
+        if k < 0:
+            break
+        blk = kilib._block(t, k)
+        if "mirror" not in blk:
+            if "(justify" in blk:
+                nb = re.sub(r'\(justify ([^)]*)\)', r'(justify \1 mirror)', blk, 1)
+            else:
+                nb = blk[:-1] + " (justify mirror))"
+        else:
+            nb = blk
+        out.append(t[pos:k] + nb)
+        pos = k + len(blk)
+    out.append(t[pos:])
+    return "".join(out)
 
 def fp_block(lib_fp, ref, value, x, y, a, padnets, path, sheetfile, lcsc, side="F"):
     t = fp_text(lib_fp)
