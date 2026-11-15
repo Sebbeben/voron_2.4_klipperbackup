@@ -7,7 +7,7 @@ so the netlist is defined in one place below. Re-run after editing:
 Symbols come from the official KiCad 8.0.8 libraries in ./libsrc, plus a
 custom INA3221 symbol defined here (not in the KiCad library).
 """
-import os, re, sys, uuid
+import math, os, re, sys, uuid
 sys.dont_write_bytecode = True  # keep __pycache__ out of the config backup
 import kilib
 
@@ -16,6 +16,8 @@ DATE = "2026-11-14"
 
 def U():
     return str(uuid.uuid4())
+
+W = "~"  # net placeholder: pin is connected by a wire drawn by the caller
 
 # --------------------------------------------------------------------------
 # Custom INA3221 symbol (pinout from TI datasheet SBOS576C, RGV package)
@@ -141,8 +143,11 @@ class Sheet:
         """Multi-line plain note (design calculations). KiCad reads \\n as a line break."""
         self.text("\\n".join(lines), x, y, size, bold=False)
 
-    def part(self, lib_id, ref, value, x, y, nets, footprint=None, lcsc="", mpn="", dnp=False, note="", in_bom=True):
-        """nets: {pin_number: net_name or None(=no-connect)}. Unlisted pins -> no-connect."""
+    def part(self, lib_id, ref, value, x, y, nets, footprint=None, lcsc="", mpn="", dnp=False, note="",
+             in_bom=True, rot=0, fields=None, hide_val=False):
+        """nets: {pin_number: net_name, W (= wired by the caller) or None (= no-connect)}.
+        Unlisted pins -> no-connect. rot = 0/90/180/270 (counter-clockwise).
+        Returns {pin_number: (x, y)} of the pin ends in sheet coordinates."""
         assert ref not in self.refs, ref
         self.refs.add(ref)
         block = self.lib(lib_id)
@@ -150,36 +155,94 @@ class Sheet:
             m = re.search(r'\(property "Footprint" "([^"]*)"', block)
             footprint = m.group(1) if m else ""
         pins = kilib.pins(block)
+        ends = self.pin_ends(lib_id, x, y, rot)
         hide = "(hide yes)"
+        fa = 90 if rot in (90, 270) else 0          # KiCad swaps H/V field text on 90/270 symbols
+        if fields is None:
+            pts = list(ends.values())
+            horizontal = len(pts) == 2 and abs(pts[0][0] - pts[1][0]) > 0.1
+            if len(pts) == 2 and horizontal:
+                fields = ((0, -2.54, "center"), (0, 2.54, "center"))
+            elif len(pts) == 2:
+                fields = ((2.54, -1.27, "left"), (2.54, 1.27, "left")) if rot == 0 else \
+                         ((5.08, -1.27, "center"), (5.08, 1.27, "center"))
+            else:
+                fields = ((2.54, -1.27, "left"), (2.54, 1.27, "left"))
+        (rdx, rdy, rj), (vdx, vdy, vj) = fields
         props = [
-            ('Reference', ref, 2.54, -1.27, ""), ('Value', value, 2.54, 1.27, ""),
-            ('Footprint', footprint, 0, 0, hide), ('Datasheet', "~", 0, 0, hide),
-            ('Description', note, 0, 0, hide), ('LCSC', lcsc, 0, 0, hide), ('MPN', mpn, 0, 0, hide),
+            ('Reference', ref, rdx, rdy, rj, ""), ('Value', value, vdx, vdy, vj, hide if hide_val else ""),
+            ('Footprint', footprint, 0, 0, "left", hide), ('Datasheet', "~", 0, 0, "left", hide),
+            ('Description', note, 0, 0, "left", hide), ('LCSC', lcsc, 0, 0, "left", hide), ('MPN', mpn, 0, 0, "left", hide),
         ]
         if ref.startswith("#"):
-            props = props[:2]
+            props = [('Reference', ref, 0, 2.54, "center", hide), ('Value', value, 0, -2.54, "center", hide)]
         ptxt = " ".join(
-            '(property "%s" "%s" (at %.2f %.2f 0) (effects (font (size 1.27 1.27)) (justify left) %s))'
-            % (k, v, x + dx, y + dy, h) for k, v, dx, dy, h in props)
+            '(property "%s" "%s" (at %.2f %.2f %d) (effects (font (size 1.27 1.27))%s %s))'
+            % (k, v, x + dx, y + dy, fa, "" if j == "center" else " (justify %s)" % j, h) for k, v, dx, dy, j, h in props)
         pin_txt = " ".join('(pin "%s" (uuid "%s"))' % (n, U()) for n in pins)
         self.items.append(
-            '(symbol (lib_id "%s") (at %.2f %.2f 0) (unit 1) (exclude_from_sim no) (in_bom %s) (on_board yes) (dnp %s) (uuid "%s") %s %s '
+            '(symbol (lib_id "%s") (at %.2f %.2f %d) (unit 1) (exclude_from_sim no) (in_bom %s) (on_board yes) (dnp %s) (uuid "%s") %s %s '
             '(instances (project "%s" (path "/%s" (reference "%s") (unit 1)))))'
-            % (lib_id, x, y, "no" if ref.startswith("#") or not in_bom else "yes", "yes" if dnp else "no", U(), ptxt, pin_txt,
+            % (lib_id, x, y, rot, "no" if ref.startswith("#") or not in_bom else "yes", "yes" if dnp else "no", U(), ptxt, pin_txt,
                self.project, self.root, ref))
         for num, (name, px, py, pa, etype) in pins.items():
-            ax, ay = x + px, y - py
+            ax, ay, aa = ends[num]
             net = nets.get(num, nets.get(name, "__NC__"))
-            if etype == "no_connect":
+            if etype == "no_connect" or net == W:
                 continue
             if net in (None, "__NC__"):
                 self.nc(ax, ay)
             else:
-                self.label(net, ax, ay, pa)
+                self.label(net, ax, ay, aa)
+        return {k: (v[0], v[1]) for k, v in ends.items()}
 
-    def flag(self, net, x, y):
+    def pin_ends(self, lib_id, x, y, rot):
+        c, s = round(math.cos(math.radians(rot))), round(math.sin(math.radians(rot)))
+        out = {}
+        for num, (name, px, py, pa, etype) in kilib.pins(self.lib(lib_id)).items():
+            rx, ry = px * c - py * s, px * s + py * c
+            out[num] = (round(x + rx, 2), round(y - ry, 2), (pa + rot) % 360)
+        return out
+
+    def put(self, lib_id, ref, value, pin, px, py, nets, rot=0, **kw):
+        """Place a symbol so that `pin` ends exactly at (px, py)."""
+        e = self.pin_ends(lib_id, 0, 0, rot)[pin]
+        return self.part(lib_id, ref, value, round(px - e[0], 2), round(py - e[1], 2), nets, rot=rot, **kw)
+
+    def _two_pin(self, lib_id, first, want):
+        for rot in (0, 90, 180, 270):
+            e = self.pin_ends(lib_id, 0, 0, rot)
+            other = [k for k in e if k != first][0]
+            dx, dy = e[other][0] - e[first][0], e[other][1] - e[first][1]
+            if want == "down" and abs(dx) < 0.01 and dy > 0 or want == "right" and abs(dy) < 0.01 and dx > 0:
+                return rot
+        raise ValueError(lib_id)
+
+    def vput(self, lib_id, ref, value, top, x, y, nets, **kw):
+        """2-pin part standing vertically with pin `top` at (x, y)."""
+        return self.put(lib_id, ref, value, top, x, y, nets, rot=self._two_pin(lib_id, top, "down"), **kw)
+
+    def hput(self, lib_id, ref, value, left, x, y, nets, **kw):
+        """2-pin part lying horizontally with pin `left` at (x, y)."""
+        return self.put(lib_id, ref, value, left, x, y, nets, rot=self._two_pin(lib_id, left, "right"), **kw)
+
+    def w(self, *pts):
+        """Wire polyline through the given points."""
+        for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+            self.items.append('(wire (pts (xy %.2f %.2f) (xy %.2f %.2f)) (stroke (width 0) (type default)) (uuid "%s"))'
+                              % (x1, y1, x2, y2, U()))
+
+    def j(self, x, y):
+        self.items.append('(junction (at %.2f %.2f) (diameter 0) (color 0 0 0 0) (uuid "%s"))' % (x, y, U()))
+
+    def lab(self, net, x, y, d):
+        """Net label at a wire end; d = direction the text runs: L, R, U, D."""
+        self.label(net, x, y, {"R": 180, "L": 0, "U": 270, "D": 90}[d])
+
+    def flag(self, net, x, y, wired=False):
+        """PWR_FLAG with its pin at (x, y); wired=True: the pin sits on a wire (no label)."""
         self.pwr += 1
-        self.part("power:PWR_FLAG", "#FLG%02d" % self.pwr, "PWR_FLAG", x, y, {"1": net})
+        self.part("power:PWR_FLAG", "#FLG%02d" % self.pwr, "PWR_FLAG", x, y, {"1": W if wired else net})
 
     def write(self, path):
         out = ['(kicad_sch (version 20231120) (generator "eeschema") (generator_version "8.0") (uuid "%s") (paper "%s")'
