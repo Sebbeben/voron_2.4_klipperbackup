@@ -12,7 +12,9 @@ Written 2026-11-14. Status: DRAFT, not ordered.
 - `PowerMonitor.pretty/` + `fp-lib-table` - project footprints: ZMCT103C,
   single Keystone 3557 fuse clip (two per fuse), Kinghelm RJ45 with shield-tab slots.
 - `main_board.kicad_pcb`, `ct_board.kicad_pcb` - footprints PLACED, not routed
-  (`kicad/gen_pcb.py`, 160 x 112 mm and 112 x 36 mm). Nets come from the
+  (`kicad/gen_pcb.py`, 100 x 100 mm and 100 x 30 mm). 3D models: KiCad 10
+  library STEP via `${KICAD10_3DMODEL_DIR}`, simple bodies for ZMCT103C and the
+  Keystone 3557 clip in `kicad/PowerMonitor.3dshapes/`. Nets come from the
   schematic and footprints are linked by symbol UUID, so KiCad "Update PCB
   from Schematic" matches them. Re-running gen_pcb.py overwrites the board -
   stop once parts are moved / routed by hand in KiCad.
@@ -106,6 +108,11 @@ Open from the review:
 | CT2 | Bed heater (750 W) | 3.3 A | 49.9 Ohm | 0.17 V rms |
 | CT3 | Chamber heater (<= 500 W, cold inrush higher) | 2.2 A | 49.9 Ohm | 0.11 V rms |
 | CT4 | Spare (future 48 V motor PSU, LRS-200 primary, ...) | - | 49.9 Ohm | - |
+
+Alternative checked 2026-11-14: ZHT ZHT103 (C2935356, ~$0.25 vs $0.26) - not used:
+specified at a 100 Ohm burden, class 0.5 (vs 0.2 %), phase <= 30' (vs 15'), linear
+0-10 A (vs 0-15 A), 3200 V isolation (vs 4500 V), 12.0 mm pin pitch (footprint
+change), 2.3k in stock vs 17k. Saving ~3 cents per board.
 
 49.9 Ohm on all four: the ZMCT103C datasheet specifies accuracy (0.2 %),
 phase error (<= 15') and the 0-15 A linear range at a 50 Ohm burden. The
