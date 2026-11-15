@@ -287,7 +287,7 @@ def main_place():
     P["C14"] = (20.0, 46.0, 0)
     P["C15"] = (26.0, 46.0, 0)
     P["J2"] = (MAIN_W - 5.4, 38.0, 270, "B")
-    P["D2"] = (89.0, 46.5, 0)
+    P["D2"] = (89.0, 46.0, 0)
     P["RS8"] = (86.5, 38.0, 270)
     P["C16"] = (80.0, 46.0, 0)
     # INA row + filter triplets (R IN+ side, C, R IN- side per channel)
@@ -356,7 +356,7 @@ def main_place():
     P["TP6"] = (97.5, 23.0, 0)
     # 3V3 LDO (AMS1117, SOT-223) next to the 5 V input
     P["U12"] = (91.5, 28.5, 0)
-    P["C17"] = (85.5, 28.5, 90)
+    P["C17"] = (85.5, 32.0, 90)
     P["C13"] = (97.6, 28.5, 90)
     # test points on the power rails
     P["TP1"] = (12.5, 32.0, 0)
