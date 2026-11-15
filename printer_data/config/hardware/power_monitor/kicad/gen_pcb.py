@@ -20,6 +20,7 @@ from gen_schematic import sym_uuid
 HERE = os.path.dirname(os.path.abspath(__file__))
 FPLIB = os.environ.get("KICAD_FPSRC", os.path.expanduser("~/kicad_libsrc_8.0.8/footprints"))
 ORIGIN = (100.0, 50.0)          # board top-left corner on the PCB page
+SOLDER_CLEAR = 1.0                 # mm free around back-side THT pads for hand soldering
 MODEL_VAR = "KICAD10_3DMODEL_DIR"   # KiCad 10 library 3D models (STEP); custom ones use ${KIPRJMOD}
 
 def U():
@@ -62,13 +63,34 @@ def courtyard(text):
             xs.append(x); ys.append(y)
     return min(xs), min(ys), max(xs), max(ys)
 
+def tht_pads(text):
+    """[(x, y, half_size)] of through-hole pads in local coordinates."""
+    out = []
+    for c in children(text):
+        if c.startswith("(pad ") and (" thru_hole " in c or " np_thru_hole " in c):
+            m = re.search(r'\(at ([-\d.]+) ([-\d.]+)', c); s = re.search(r'\(size ([-\d.]+) ([-\d.]+)\)', c)
+            out.append((float(m.group(1)), float(m.group(2)), max(float(s.group(1)), float(s.group(2))) / 2))
+    return out
+
 def rot(x, y, a):
     """KiCad PCB rotation (counter-clockwise on screen, y down)."""
     c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
     return x * c + y * s, -x * s + y * c
 
-def fp_block(lib_fp, ref, value, x, y, a, padnets, path, sheetfile, lcsc):
+def flip_text(t):
+    """Mirror a footprint to the back side (KiCad top/bottom flip in local coordinates):
+    y -> -y, local angles negated, F.* layers -> B.*, texts mirrored."""
+    t = re.sub(r'\((at|start|end|center|mid|xy) ([-\d.]+) ([-\d.]+)',
+               lambda m: "(%s %s %s" % (m.group(1), m.group(2), repr(-float(m.group(3)) + 0.0).rstrip("0").rstrip(".") if float(m.group(3)) else "0"), t)
+    t = re.sub(r'"F\.(SilkS|Fab|CrtYd|Paste|Mask|Cu|Adhes)"', r'"B.\1"', t)
+    t = t.replace("(justify left)", "(justify left mirror)").replace("(justify right)", "(justify right mirror)")
+    t = re.sub(r'\(effects \(font ([^)]*\)[^)]*)\)\)', lambda m: m.group(0) if "mirror" in m.group(0) else m.group(0)[:-1] + " (justify mirror))", t)
+    return t
+
+def fp_block(lib_fp, ref, value, x, y, a, padnets, path, sheetfile, lcsc, side="F"):
     t = fp_text(lib_fp)
+    if side == "B":
+        t = flip_text(t)
     name = lib_fp.split(":")[1]
     parts = [c for c in children(t) if not re.match(r'\((version|generator|generator_version|layer) ', c)]
     out = []
@@ -83,7 +105,7 @@ def fp_block(lib_fp, ref, value, x, y, a, padnets, path, sheetfile, lcsc):
                 c = re.sub(r'\(property "Footprint" "[^"]*"', '(property "Footprint" "%s"' % lib_fp, c, 1)
         if c.startswith("(property ") or c.startswith("(fp_text ") or c.startswith("(pad "):
             def fix_at(m):
-                ang = float(m.group(3) or 0) + a
+                ang = (-float(m.group(3) or 0) if side == "B" else float(m.group(3) or 0)) + a
                 ang = ang % 360
                 return "(at %s %s%s)" % (m.group(1), m.group(2), (" %g" % ang) if ang else "")
             c = re.sub(r'\(at ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)', fix_at, c, 1)
@@ -97,8 +119,8 @@ def fp_block(lib_fp, ref, value, x, y, a, padnets, path, sheetfile, lcsc):
         if "(uuid " in c:
             c = re.sub(r'\(uuid "[^"]*"\)', '(uuid "%s")' % U(), c)
         out.append(c)
-    head = ('(footprint "%s" (layer "F.Cu") (uuid "%s") (at %.3f %.3f%s)'
-            % (lib_fp, U(), x, y, (" %g" % a) if a else ""))
+    head = ('(footprint "%s" (layer "%s") (uuid "%s") (at %.3f %.3f%s)'
+            % (lib_fp, "B.Cu" if side == "B" else "F.Cu", U(), x, y, (" %g" % a) if a else ""))
     extra = ['(property "LCSC" "%s" (at 0 0 0) (layer "F.Fab") (hide yes) (uuid "%s") (effects (font (size 1 1) (thickness 0.15))))'
              % (lcsc, U())] if lcsc else []
     extra += ['(path "/%s")' % path, '(sheetname "Root")', '(sheetfile "%s")' % sheetfile]
@@ -150,10 +172,15 @@ def build(board, sch, size, place, texts=(), copper_oz=2):
     assert not extra, "placed but not in schematic: %s" % extra
     W, H = size
     netid = {n: i + 1 for i, n in enumerate(netnames)}
-    boxes, fps = {}, []
-    for ref, (cx, cy, a) in place.items():
+    boxes, fps, side_of, padboxes = {}, [], {}, []
+    for ref, pl in place.items():
+        cx, cy, a = pl[:3]
+        side = pl[3] if len(pl) > 3 else "F"
+        side_of[ref] = side
         p = parts[ref]
         t = fp_text(p["fp"])
+        if side == "B":
+            t = flip_text(t)
         x1, y1, x2, y2 = courtyard(t)
         lcx, lcy = (x1 + x2) / 2, (y1 + y2) / 2
         rx, ry = rot(lcx, lcy, a)
@@ -163,7 +190,10 @@ def build(board, sch, size, place, texts=(), copper_oz=2):
         boxes[ref] = (min(bx), min(by), max(bx), max(by))
         pn = {pad: (netid[n], n) for pad, n in padnet.get(ref, {}).items()}
         fps.append(fp_block(p["fp"], ref, p["value"], ox, oy, a, pn,
-                            sym_uuid(board, ref), sch, p["lcsc"]))
+                            sym_uuid(board, ref), sch, p["lcsc"], side))
+        for px, py, hs in tht_pads(t):
+            qx, qy = rot(px, py, a)
+            padboxes.append((ref, ox + qx, oy + qy, hs + SOLDER_CLEAR))
     # checks: courtyard overlap + inside the board
     errs = []
     refs = sorted(boxes)
@@ -174,8 +204,18 @@ def build(board, sch, size, place, texts=(), copper_oz=2):
                 errs.append("outside board: %s %s" % (r1, tuple(round(v - o, 1) for v, o in zip(a1, ORIGIN * 2))))
         for r2 in refs[i + 1:]:
             a2 = boxes[r2]
+            both = "MountingHole" in parts[r1]["fp"] or "MountingHole" in parts[r2]["fp"]
+            if side_of[r1] != side_of[r2] and not both:
+                continue                   # parts on opposite sides may overlap
             if a1[0] < a2[2] - 0.01 and a2[0] < a1[2] - 0.01 and a1[1] < a2[3] - 0.01 and a2[1] < a1[3] - 0.01:
                 errs.append("courtyard overlap: %s / %s" % (r1, r2))
+    # THT pads go through the board: no part on either side may sit on them (+ soldering access)
+    for pref, px, py, hs in padboxes:
+        for r, b in boxes.items():
+            if r == pref or "MountingHole" in parts[r]["fp"]:
+                continue
+            if b[0] < px + hs and px - hs < b[2] and b[1] < py + hs and py - hs < b[3]:
+                errs.append("on a THT pad of %s: %s" % (pref, r))
     out = ['(kicad_pcb (version 20240108) (generator "gen_pcb.py") (generator_version "8.0")',
            '(general (thickness 1.6) (legacy_teardrops no))', '(paper "A3")', LAYERS,
            '(setup (pad_to_mask_clearance 0) (allow_soldermask_bridges_in_footprints no))',
