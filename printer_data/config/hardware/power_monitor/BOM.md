@@ -96,15 +96,16 @@ Open from the review:
 | Main board THT (LCSC, hand-soldered, 37 parts) | 6.79 | 35.43 (MOQ rounding) |
 | CT board SMD (8 parts) | 1.30 | 6.50 |
 | CT board THT (4x ZMCT103C + RJ45) | 2.09 | 10.46 |
-| JLC Extended part fee, $3 x 15 types (13 main + 2 CT) | - | 45.00 |
-| **Parts total** | **22.51** | **~160-166** |
+| JLC Extended part fee, $3 x 14 types (12 main + 2 CT) | - | 42.00 |
+| **Parts total** | **~22.5** | **~157-163** |
 
 Not included: PCB fabrication (2 layers, 2 oz) and assembly setup/stencil, shipping/VAT, ATM fuses,
 AC-AC adapter, relay/contactor, Cat6 cable. Biggest parts: STM32G071KBT6 (~$3.1), 3x INA3221 (~$2.1 each).
-JLC Basic/Extended from jlcpcb.com/partdetail: Extended = INA3221, STM32, AP2112K, shunts (4 types),
+JLC Basic/Extended from jlcpcb.com/partdetail: Extended = INA3221, STM32, shunts (4 types),
 SMBJ24A, SMBJ6.0A, 1 A fuse, ferrite, 0.1 % 10k, 10 nF C0G (+ CT: 49.9R, SMAJ5.0CA). Capacitors were
 moved to Basic parts on 2026-11-15 (100 nF C14663, 1 uF C28323 0805, 10 uF 50 V C13585 1206; C15849 was
-out of stock).
+out of stock). LDO AP2112K -> AMS1117-3.3 (C6186, Basic, SOT-223) with 10 uF in / 22 uF out
+(C15850 / C45783, Basic); the SMBJ6.0A clamp (10.3 V) is now below the LDO's 15 V max input.
 
 ## Concept - two boards
 | | **CT board** (in the mains area) | **Main board** (next to the Pi) |
