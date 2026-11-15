@@ -223,15 +223,15 @@ def main_place():
     P["C15"] = (28.0, 61.0, 0)
     # 5 V input on the right edge, RS8 -> 5V_BUS -> RS9 (column 7) and the LDO
     P["J2"] = (MAIN_W - 5.5, 58.0, 90)
-    P["D2"] = (MAIN_W - 12.0, 48.0, 270)
+    P["D2"] = (MAIN_W - 10.0, 68.0, 0)
     P["RS8"] = (MAIN_W - 18.0, 56.0, 180)
-    P["C16"] = (MAIN_W - 18.0, 62.0, 0)
+    P["C16"] = (MAIN_W - 19.0, 62.0, 0)
     # INA3221s above the bus band, filter R/C triplets under each, decoupling next to VS
     inas = {"U1": 40.0, "U2": 84.0, "U3": 129.0}
     for i, (u, x) in enumerate(inas.items()):
         P[u] = (x, 39.0, 0)
         P["C%d" % (10 + i)] = (x + 5.0, 36.0, 90)
-    trip_x = {1: 16.0, 2: COL[0], 3: COL[1], 4: COL[2], 5: COL[3], 6: COL[4], 7: COL[5], 8: MAIN_W - 20.0, 9: COL[6]}
+    trip_x = {1: 20.0, 2: COL[0], 3: COL[1], 4: COL[2], 5: COL[3], 6: COL[4], 7: COL[5], 8: MAIN_W - 12.0, 9: COL[6]}
     for ch, x in trip_x.items():       # channel ch: R(2ch-1) = IN+ side, C(ch), R(2ch) = IN- side
         y = 47.0
         P["R%d" % (2 * ch - 1)] = (x - 2.2, y, 90)
@@ -262,13 +262,13 @@ def main_place():
     P["FB1"] = (90.0, 24.5, 90)
     P["SW1"] = (80.0, 25.0, 0)
     P["C43"] = (86.0, 18.0, 90)
-    P["J22"] = (84.0, 4.0, 90)
+    P["J22"] = (82.5, 4.0, 90)
     P["R64"] = (92.0, 4.5, 0)
     P["JP1"] = (97.0, 4.5, 0)
     P["R65"] = (103.0, 4.5, 0)
     P["LED10"] = (108.0, 4.5, 180)
     for i, r in enumerate(["R60", "R61", "R62"]):
-        P[r] = (105.0 + i * 3.0, 11.0, 90)
+        P[r] = (106.0 + i * 3.0, 16.0, 90)
     # 3V3 LDO near the 5 V input
     P["U12"] = (MAIN_W - 12.0, 36.0, 0)
     P["C17"] = (MAIN_W - 18.0, 36.0, 90)
@@ -276,8 +276,8 @@ def main_place():
     # mains analog: RJ45 + AC jack on the top edge, RC + clamps between them and the MCU
     P["J20"] = (141.0, 9.5, 180)
     P["J21"] = (121.0, 8.0, 270)
-    P["R72"] = (112.0, 13.0, 90)
-    P["R73"] = (115.0, 13.0, 90)
+    P["R72"] = (108.0, 9.0, 90)
+    P["R73"] = (111.0, 9.0, 90)
     P["R70"] = (130.0, 21.0, 90)
     P["R71"] = (133.0, 21.0, 90)
     P["C30"] = (136.5, 21.0, 90)
@@ -285,12 +285,12 @@ def main_place():
     for i in range(5):                 # channel i: pull-down (CT only), series R, cap, clamp
         x = 108.0 + i * 5.0
         if i < 4:
-            P["R%d" % (79 + i)] = (x + 36.0, 26.0, 90)
+            P["R%d" % (79 + i)] = (x, 37.0, 90)
         P["R%d" % (74 + i)] = (x, 22.0, 90)
         P["C%d" % (35 + i)] = (x, 27.0, 90)
         P["D%d" % (10 + i)] = (x + 1.0, 32.0, 0)
     # test points and mounting holes
-    tps = {"TP1": (12.0, 66.0), "TP2": (36.0, 56.0), "TP3": (MAIN_W - 26.0, 62.0), "TP4": (62.0, 22.0),
+    tps = {"TP1": (12.0, 66.0), "TP2": (36.0, 56.0), "TP3": (MAIN_W - 26.0, 59.0), "TP4": (62.0, 22.0),
            "TP5": (92.0, 30.0), "TP6": (143.0, 21.0), "TP7": (64.0, 13.0), "TP8": (67.5, 13.0),
            "TP9": (71.0, 13.0), "TP10": (74.5, 13.0)}
     for r, (x, y) in tps.items():
@@ -303,16 +303,16 @@ def main_place():
 # --------------------------------------------------------------------------
 # CT board placement
 # --------------------------------------------------------------------------
-CT_W, CT_H = 112.0, 34.0
+CT_W, CT_H = 112.0, 36.0
 def ct_place():
     P = {}
     for i in range(4):
-        x = 12.0 + i * 24.0
-        P["T%d" % (i + 1)] = (x, 11.0, 0)          # all CTs the same direction (P1* side = supply side)
-        P["R%d" % (i + 1)] = (x - 3.0, 24.0, 0)
-        P["D%d" % (i + 1)] = (x + 5.0, 24.0, 0)
+        x = 12.0 + i * 23.0
+        P["T%d" % (i + 1)] = (x, 13.0, 0)          # all CTs the same direction (P1* side = supply side)
+        P["R%d" % (i + 1)] = (x - 3.0, 26.0, 0)
+        P["D%d" % (i + 1)] = (x + 5.0, 26.0, 0)
     P["J1"] = (CT_W - 9.5, 17.0, 90)                # RJ45 opening to the right edge
-    for r, (x, y) in {"H1": (3.5, 3.5), "H2": (3.5, CT_H - 3.5), "H3": (88.0, 3.5), "H4": (88.0, CT_H - 3.5)}.items():
+    for r, (x, y) in {"H1": (3.5, 3.5), "H2": (3.5, CT_H - 3.5), "H3": (91.0, 3.5), "H4": (91.0, CT_H - 3.5)}.items():
         P[r] = (x, y, 0)
     return P
 
@@ -320,5 +320,5 @@ if __name__ == "__main__":
     e1, _ = build("main_board", "main_board.kicad_sch", (MAIN_W, MAIN_H), main_place(),
                   texts=[("POWER MONITOR rev 0 - 24.0 V MAX", 40.0, 66.5, 1.5)])
     e2, _ = build("ct_board", "ct_board.kicad_sch", (CT_W, CT_H), ct_place(),
-                  texts=[("NO MAINS COPPER - single L wire through each CT", 4.0, 31.5, 1.2)])
+                  texts=[("NO MAINS COPPER - single L wire through each CT", 9.0, 33.0, 1.2)])
     sys.exit(1 if e1 or e2 else 0)
