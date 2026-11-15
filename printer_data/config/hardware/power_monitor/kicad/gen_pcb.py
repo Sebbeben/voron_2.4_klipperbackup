@@ -279,7 +279,7 @@ def main_place():
         P["F%dA" % n] = (x, H - 13.7 - 9.73, 270, "B")     # supply-side clip (ATM = 9.73 mm)
         P["LEDF%d" % n] = (x, H - 29.4, 0, "B")             # blown-fuse LED, visible next to the fuse
         P[shunts[k]] = (x, H - 18.57, 0)                    # top side, between the clip pad rows
-        P["RL%d" % n] = (x + 4.6, H - 29.4, 90)
+        P["RL%d" % n] = (x + (4.6 if k < 6 else -4.6), H - 29.4, 90)   # RL7 left: H4 hole
     # 24 V input (left edge) / 5 V input (right edge), wire entry outward
     P["J1"] = (5.4, 38.0, 90, "B")
     P["D1"] = (10.5, 38.0, 90)
@@ -287,8 +287,8 @@ def main_place():
     P["C14"] = (20.0, 46.0, 0)
     P["C15"] = (26.0, 46.0, 0)
     P["J2"] = (MAIN_W - 5.4, 38.0, 270, "B")
-    P["D2"] = (MAIN_W - 10.5, 38.0, 90)
-    P["RS8"] = (MAIN_W - 15.0, 38.0, 270)
+    P["D2"] = (89.5, 31.5, 0)
+    P["RS8"] = (86.5, 38.0, 270)
     P["C16"] = (80.0, 46.0, 0)
     # INA row + filter triplets (R IN+ side, C, R IN- side per channel)
     for i, (u, x) in enumerate((("U1", 30.0), ("U2", 50.0), ("U3", 70.0))):
@@ -355,9 +355,9 @@ def main_place():
     P["C31"] = (95.0, 20.0, 90)
     P["TP6"] = (97.5, 23.0, 0)
     # 3V3 LDO next to the 5 V input
-    P["U12"] = (91.0, 28.0, 0)
-    P["C17"] = (87.0, 28.0, 90)
-    P["C13"] = (95.0, 28.0, 90)
+    P["U12"] = (91.0, 27.5, 0)
+    P["C17"] = (87.0, 27.5, 90)
+    P["C13"] = (95.0, 27.5, 90)
     # test points on the power rails
     P["TP1"] = (12.5, 32.0, 0)
     P["TP2"] = (31.0, 46.0, 0)
