@@ -275,7 +275,9 @@ FP_C0603 = "Capacitor_SMD:C_0603_1608Metric"
 FP_C0805 = "Capacitor_SMD:C_0805_2012Metric"
 FP_C1206 = "Capacitor_SMD:C_1206_3216Metric"
 FP_C1210 = "Capacitor_SMD:C_1210_3225Metric"
-FP_LED = "LED_SMD:LED_0603_1608Metric"
+FP_LED = "LED_THT:LED_D3.0mm"   # 3 mm THT on the back (THT side faces out when mounted), hand-soldered
+LED_RED = ("C99771", "Everlight 204-10SURD/S530-A3-L")     # 3 mm red diffused
+LED_GREEN = ("C181864", "Everlight 204-10SYGD/S530-E2-L")  # 3 mm green diffused
 FP_TERM = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
 FP_CLIP = "PowerMonitor:Fuseclip_Blade_Mini_Keystone_3557"  # one clip per designator, pair = 9.73 mm apart
 FP_TP = "TestPoint:TestPoint_Pad_D1.5mm"
@@ -510,8 +512,8 @@ def main_board():
                footprint=FP_R0603, lcsc="C25804" if rled == "10k" else "C21190",
                mpn="UNI-ROYAL 0603WAF1002T5E" if rled == "10k" else "UNI-ROYAL 0603WAF1001T5E")
         s.w((x + 20.32, yl), (x + 25.4, yl))
-        s.hput("Device:LED", "LEDF%d" % (i + 1), "red", "2", x + 25.4, yl, {"1": W, "2": W},
-               footprint=FP_LED, lcsc="C2286", mpn="KENTO KT-0603R", note="Fuse blown indicator")
+        s.hput("Device:LED", "LEDF%d" % (i + 1), "red 3mm", "2", x + 25.4, yl, {"1": W, "2": W},
+               footprint=FP_LED, lcsc=LED_RED[0], mpn=LED_RED[1], note="Fuse blown indicator, next to the fuse on the THT side")
         s.w((x + 33.02, yl), (x + 43.18, yl), (x + 43.18, by))
         s.j(x + 43.18, by)
 
@@ -599,8 +601,8 @@ def main_board():
     s.hput("Device:R", "R65", "1k", "1", xp, yl, {"1": W, "2": W}, footprint=FP_R0603, lcsc="C21190",
            mpn="UNI-ROYAL 0603WAF1001T5E")
     s.w((xp + 7.62, yl), (xp + 10.16, yl))
-    s.hput("Device:LED", "LED10", "green", "2", xp + 10.16, yl, {"1": W, "2": W}, footprint=FP_LED,
-           lcsc="C12624", mpn="KENTO KT-0603G", note="Status LED (active high)")
+    s.hput("Device:LED", "LED10", "green 3mm", "2", xp + 10.16, yl, {"1": W, "2": W}, footprint=FP_LED,
+           lcsc=LED_GREEN[0], mpn=LED_GREEN[1], note="Status LED (active high)")
     s.w((xp + 17.78, yl), (xp + 22.86, yl))
     s.lab("GND", xp + 22.86, yl, "R")
     # BOOT0 recovery: PA14 (SWCLK) -> 10k -> solder jumper -> 3V3
@@ -751,8 +753,8 @@ def main_board():
     s.vput("Device:R", "R87", "10k", "1", xl, yr + 2.54, {"1": W, "2": W}, footprint=FP_R0603, lcsc="C25804",
            mpn="UNI-ROYAL 0603WAF1002T5E")
     s.w((xl, yr + 10.16), (xl, yr + 12.7))
-    s.vput("Device:LED", "LED11", "green", "2", xl, yr + 12.7, {"1": W, "2": W}, footprint=FP_LED,
-           lcsc="C12624", mpn="KENTO KT-0603G", note="Relay energised")
+    s.vput("Device:LED", "LED11", "green 3mm", "2", xl, yr + 12.7, {"1": W, "2": W}, footprint=FP_LED,
+           lcsc=LED_GREEN[0], mpn=LED_GREEN[1], note="Relay energised")
     s.w((xl, yr + 20.32), (xl, yc), (xc, yc))
     # flyback diode across the coil (cathode to RLY_V+)
     s.w((xd, yr), (xd, yr + 7.62)); s.j(xd, yr)
