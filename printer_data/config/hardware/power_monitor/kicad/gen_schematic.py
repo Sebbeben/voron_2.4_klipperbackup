@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Generate the KiCad 8 schematics for the power monitor (main board + CT board).
 
-All connections are made with net labels placed on the pin ends (no wires),
-so the netlist is defined in one place below. Re-run after editing:
+Parts inside a block are connected with wires (signal flow left to right); net labels
+join the blocks. Re-run after editing, then prove the connectivity did not change:
     python3 gen_schematic.py
+    python3 netcheck.py main_board.kicad_sch   (compare with the previous output)
 Symbols come from the official KiCad 8.0.8 libraries in ./libsrc, plus a
 custom INA3221 symbol defined here (not in the KiCad library).
 """
