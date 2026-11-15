@@ -46,15 +46,18 @@ Rise time with ~100 pF cable: 2.2 us -> fine for an alarm line.
  5 V rail, R  1.0k: LED 3.10 mA, resistor   9.6 mW (0603 = 100 mW)
 Leakage into a disconnected/off load with intact fuse: 0 (LED shorted by the fuse).
 
-6. 3V3 budget (AP2112K-3.3 from 5 V)
+6. 3V3 budget (AMS1117-3.3 from 5 V)
 ------------------------------------
   3x INA3221 (max)               1.35 mA
   STM32G071 @64 MHz + ADC       12.00 mA
   status LED                     1.30 mA
   bias divider                   0.17 mA
   alert pull-ups (both low)      0.66 mA
-  total 15.5 mA of 600 mA; LDO loss 26 mW -> OK
-5 V TVS SMBJ5.0A clamps at 9.2 V peak > AP2112 6.5 V abs max: surge-only protection,
+  total 15.5 mA of 1000 mA; LDO loss incl. Iq 43 mW -> OK
+  headroom: 4.75 V (5 V -5 %) - 3.3 V = 1.45 V > dropout 1.3 V (max, at 1 A; ~1.0 V at 20 mA)
+  AMS1117 needs >= 22 uF on the output (C13 22 uF X5R 0805) and >= 10 uF on the input (C17).
+5 V TVS SMBJ6.0A: VRWM 6.0 V > 5.25 V Pi supply max (SMBJ5.0A leaked above its 5.0 V VRWM).
+It clamps at 10.3 V peak < AMS1117 15.0 V max input: the TVS protects the LDO,
 the 5 V source must be a regulated supply (it is).
 
 7. Current transformers (ZMCT103C, 1000:1)
