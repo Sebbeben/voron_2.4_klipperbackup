@@ -818,7 +818,8 @@ def main_board():
         "No reverse-polarity protection on J1/J2: reversed input kills U1-U3 (IN+- min -0.3 V).",
         "Alert pull-ups 10k: 0.33 mA sink (VOL 0.4 V @ 3 mA OK), rise 2.2 us @ 100 pF.",
         "Fuse LEDs: 24 V: (24-1.9)/10k = 2.2 mA, 49 mW;  5 V: (5-1.9)/1k = 3.1 mA, 10 mW (0603 = 100 mW).",
-        "3V3 budget: 3x INA 1.35 + MCU 12 + LEDs/bias/pull-ups 2.1 = 15.5 mA of 600 mA, LDO 26 mW.",
+        "3V3 budget: 3x INA 1.35 + MCU 12 + LEDs/bias/pull-ups 2.1 = 15.5 mA of 1 A (AMS1117), LDO 43 mW incl. Iq.",
+        "AMS1117: 1.45 V headroom from 4.75 V > 1.3 V max dropout; >= 10 uF in, >= 22 uF out. SMBJ6.0A 10.3 V < 15 V max in.",
         "Copper (IPC-2221, 2 oz outer, dT 10 C): 8.5 A 2.9 mm, 7 A 2.2 mm, 5 A 1.4 mm, 3 A 0.7 mm.",
     ], 114.3, 33.02)
     s.text("DESIGN CALCULATIONS - mains side + MCU", 693.42, 27.94, 2.0)
