@@ -1,0 +1,25 @@
+# go2rtc - USB camera (YJXU502S 0edc:2050) video + microphone over WebRTC
+# PREPARED 2026-11-17, NOT INSTALLED YET - see CAMERA_AUDIO.md for install steps.
+#
+# Video: re-uses the MJPEG stream from crowsnest/ustreamer [cam 2] (the V4L2 device can only be
+#        opened once), transcoded to H.264 with the Pi 4 hardware encoder (h264_v4l2m2m).
+# Audio: the camera microphone (ALSA card "Camera") encoded to Opus.
+# ffmpeg only runs while someone is watching (go2rtc starts producers on demand).
+# Same file works on Ubuntu later: change the video source to the V4L2 device
+# (ffmpeg:device?video=/dev/v4l/by-id/...) and drop #hardware if there is no VAAPI/V4L2 encoder.
+
+api:
+  listen: ":1984"          # Web UI + API (LAN/WireGuard only - the API can start processes, never expose it to the internet)
+
+rtsp:
+  listen: "127.0.0.1:8554" # local only, used internally by the exec audio source
+
+webrtc:
+  listen: ":8555"
+
+streams:
+  usbcam:
+    - ffmpeg:http://127.0.0.1:8081/?action=stream#video=h264#hardware#width=1280#height=720
+    - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -f rtsp {output}
+  usbcam_audio:
+    - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -f rtsp {output}

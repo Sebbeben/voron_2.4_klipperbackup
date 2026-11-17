@@ -12,7 +12,7 @@ Klipper configuration backup for my Voron 2.4 350 (pushed automatically by [Klip
 - [Fysetc Spider v1.1](https://github.com/FYSETC/FYSETC-SPIDER) (connected to the Pi over UART `/dev/ttyAMA0`)
   - [Fysetc TMC2209 v3.1](https://github.com/FYSETC/FYSETC-TMC2209) ([Silent2209](https://fysetc.github.io/Silent2209/))
   - [Fysetc Canbus Expander for Spider](https://github.com/FYSETC/FYSETC-SPIDER/blob/main/images/CANBUS.jpg)
-- [Mellow SB2040 v1](https://mellow-3d.github.io/fly_sb2040_v1_general.html) (CAN, 1 Mbit) - [pin definitions](https://mellow-3d.github.io/fly_sb2040_v1_pins.html)
+- [Mellow SB2040 v1](https://mellow-3d.github.io/fly_sb2040_v1_general.html#fly-sb2040-v1-overview) (CAN, 1 Mbit) - [pin definitions](https://mellow-3d.github.io/fly_sb2040_v1_pins.html)
 - Orbiter extruder (version to be verified - `rotation_distance: 4.637` is the Orbiter 2.0 value)
   - [FYSETC G36HSY4405-6D-1200 stepper motor](https://github.com/FYSETC/FYSETC-MOTORS/blob/main/G36HSY4405-6D-1200/G36HSY4405-6D-1200.pdf), run at 0.65 A
 - [Rapido UHF Hotend](https://www.phaetus.com/products/rapido-hotend?variant=45122834465045) (v1, HF + UHF nozzles included)
