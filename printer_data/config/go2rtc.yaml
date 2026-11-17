@@ -20,6 +20,6 @@ webrtc:
 streams:
   usbcam:
     - ffmpeg:http://127.0.0.1:8081/?action=stream#video=h264#hardware#width=1280#height=720
-    - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -f rtsp {output}
+    - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
   usbcam_audio:
-    - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -f rtsp {output}
+    - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
