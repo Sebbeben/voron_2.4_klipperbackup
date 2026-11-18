@@ -28,6 +28,3 @@ streams:
     - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
   usbcam_audio:
     - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
-  # TEMPORARY test stream (2026-11-18): 440 Hz tone, to check browser audio playback. Remove after the test.
-  test_tone:
-    - exec:ffmpeg -hide_banner -loglevel error -re -f lavfi -i sine=frequency=440:sample_rate=48000 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
