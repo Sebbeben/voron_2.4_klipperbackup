@@ -12,7 +12,7 @@ api:
   listen: ":1984"          # Web UI + API (LAN/WireGuard only - the API can start processes, never expose it to the internet)
 
 rtsp:
-  listen: "127.0.0.1:8554" # local only, used internally by the exec audio source
+  listen: "127.0.0.1:8556" # local only, used internally by the exec audio source (8554 = crowsnest cam 1 RTSP)
 
 webrtc:
   listen: ":8555"

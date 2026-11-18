@@ -99,7 +99,7 @@ Config changes (backup of the old files kept locally):
 - Added `fan_upgrade.cfg` (inactive)
 
 ## TODO
-Status 2026-11-17: printer homes, levels and probes again; hotend fan replaced; input shaper provisional. Remaining before printing: part fan, nozzle hot-tighten, hotend PID, extruder calibration, ABS test print.
+Status 2026-11-18: **printer parked** until new A/B motors arrive. Sensorless X/Y homing fails with TMC `uv_cp` (Undervoltage) - traced to the **motor B (stepper_x)**, see "A/B motor fault" below. Do not print until the motors are replaced.
 
 ### Done 2026-11-13
 - [x] Klipper CPU pinning fixed (`[Service]` header) - Klipper runs on core 3
@@ -118,6 +118,37 @@ Status 2026-11-17: printer homes, levels and probes again; hotend fan replaced; 
 - [ ] Import the Orca profiles on the PC and check them
 - [ ] Verify the Pi cam works right after the next Pi reboot (crowsnest boot delay, see Done)
 - [x] OS migration plan (Bullseye EOL -> MainsailOS v3 / Trixie on a new SD card): `printer_data/config/OS_MIGRATION.md`, system files in `printer_data/config/system/`
+
+### A/B motor fault 2026-11-18 (printer parked)
+Symptom: sensorless homing stops with `TMC 'stepper_x' reports error: GSTAT: 00000004 uv_cp=1(Undervoltage!)` (on 2026-11-17 also on stepper_y), false "homed" positions, erratic moves.
+
+Ruled out with tests:
+- 24 V supply: meter MIN/MAX on Spider PWR IN during failing homing 24.130-24.154 V (Spider v1.1 has no separate motor input)
+- Driver modules: swapped X/Y modules with Z modules -> fault stayed on stepper_x
+- Spider X-MOT socket: swapped the X-MOT/Y-MOT motor plugs + pins in the config -> fault followed motor B
+- Motor B cable: new cable -> fault stayed
+- Endstop ports X-/Y- are empty, PB13/PB14 used only as DIAG; normal moves, STEPPER_BUZZ and stealthChop moves are fine - the fault needs homing (stealthChop + StallGuard)
+- Motor A cable was bad (open-load `ola/olb` flags during STEPPER_BUZZ, gone with a new cable)
+
+Current state (temporary!):
+- X-MOT/Y-MOT motor plugs are **swapped** and `printer.cfg` has the matching swapped pins (`# SOCKET SWAP TEST` comments). Restore both together (backup `~/clog_fix_backup_20261113/printer.cfg.before_socketswap_20261118`)
+- `homing_v2.cfg`: `G4 P2000` before `G28 X`/`G28 Y` (Klipper TMC docs), X/Y `homing_speed` 80
+- Z `position_max` 200 (chamber NTCs), gantry around Z 140
+
+Plan:
+- [x] Ordered 2026-11-18 from 3do.dk: 2 x LDO-42STH48-2504AC (1.8 deg, 2.5 A, ~1.2 ohm, ~1.5 mH) + 2 x NEMA17 adhesive heatsink
+- [ ] Fit both motors as A and B with **new cables on both**, heatsinks on the back (clean with IPA). No vibration dampers on A/B
+- [ ] Restore the motor plugs (B -> X-MOT, A -> Y-MOT) and the original stepper_x/y pins
+- [ ] `run_current: 1.2` on the TMC2209 (watch `otpw`, max ~1.4-1.6 A with good electronics bay cooling)
+- [ ] Keep sensorless homing: recalibrate `driver_SGTHRS` and the home current (0.49 A) for the new motors
+- [ ] Re-run input shaper (re-enable klipper-mcu + `[mcu rpi]`/`[adxl345]`), X with `FREQ_END=170`
+- [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
+- [ ] Later: 2 x BTT TMC2240 (SPI, StallGuard4 so sensorless homing keeps working) for X/Y -> 2504AC at ~1.6-1.8 A. Check the BTT module pinout against the Spider v1.1 SPI jumpers first
+- Spider v1.1 is 24 V only (100 uF 35 V caps at the drivers). 48 V or LDO "Super Power" 2804 motors need a new board or external drivers
+
+### Chamber heater (idea)
+- [ ] PTC heater with fan for PA/PC (chamber 60-80 C): ~300-500 W, SSR + `[heater_generic chamber]`, `max_temp` ~70-80, fan interlocked, thermal fuse in series, mount in PA-CF/GF. Measure the bed-only chamber heat loss first (bed 110 C, 60-90 min) to size it. Practical limit for this Voron ~80 C (motors, belts, rail grease); PEEK/PEI/PEKK are out of reach
+- [ ] Insulate panels/floor first (cheap, +5-10 C)
 
 ### Future
 - [ ] Physical X/Y microswitch endstops (BIQU CNC Tap V2 includes an X endstop arm; X -> Spider PB14, Y -> PB13, remove DIAG jumpers)
