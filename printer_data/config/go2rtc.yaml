@@ -19,7 +19,9 @@ webrtc:
 
 streams:
   usbcam:
-    - ffmpeg:http://127.0.0.1:8081/?action=stream#video=h264#hardware#width=1280#height=720
+    # go2rtc 1.9.14 rejects the Bullseye ffmpeg 4.3 for "ffmpeg:" sources ("unsupported version"), so the
+    # video is transcoded with our own exec: command instead (h264_v4l2m2m = Pi 4 hardware encoder).
+    - exec:ffmpeg -hide_banner -loglevel error -f mjpeg -i http://127.0.0.1:8081/?action=stream -an -vf scale=1280:720,format=yuv420p -c:v h264_v4l2m2m -b:v 2M -g 30 -bf 0 -rtsp_transport tcp -f rtsp {output}
     - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
   usbcam_audio:
     - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
