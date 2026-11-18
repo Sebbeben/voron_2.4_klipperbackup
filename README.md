@@ -155,7 +155,8 @@ Plan:
 - [ ] Emergency stop: latching 2-pole NC mushroom switch cutting L+N before the PSU and the bed SSR (PE never switched)
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
 - [ ] USB camera LED: not software-controllable (researched 2026-11-17) -> rewire the LED ring to 5 V via a MOSFET on a free MCU pin, `[output_pin camera_led]`. Plan in `printer_data/config/CAMERA_AUDIO.md`
-- [ ] USB camera microphone: go2rtc config ready and both ffmpeg chains tested (`go2rtc.yaml`, `CAMERA_AUDIO.md`); install go2rtc + service
+- [x] USB camera microphone: go2rtc v1.9.14 installed 2026-11-18 (service `go2rtc`), video + sound at `http://<pi>:1984/stream.html?src=usbcam&mode=webrtc` (`go2rtc.yaml`, `CAMERA_AUDIO.md`)
+- [ ] Optional: add go2rtc as a Mainsail webcam (WebRTC go2rtc; Mainsail mutes the video element, sound via the go2rtc page)
 
 ### On site - power OFF
 - [x] USB cam (UICPAL OV5648, LED + mic on board): plug into the Pi, then read `lsusb -v` / `v4l2-ctl --list-ctrls` / `arecord -l` to find the LED control (likely a UVC extension unit) and test the mic. Add as cam 2 in crowsnest
