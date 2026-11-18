@@ -5,8 +5,9 @@ Video via crowsnest `[cam 2]` (ustreamer, port 8081, 1920x1080 @ 15). Microphone
 (`plughw:CARD=Camera,DEV=0`), works, about -37 dBFS with the fans running.
 
 Status 2026-11-18: **go2rtc v1.9.14 installed and running** as systemd service `go2rtc` (unit file copy in
-`system/go2rtc.service`). Video is H.264 1280x720 via an `exec:` ffmpeg command, because go2rtc 1.9.14
-rejects the Bullseye ffmpeg 4.3 for `ffmpeg:` sources ("unsupported version"). Internal RTSP on
+`system/go2rtc.service`). Video is H.264 960x540 (software x264, keyframe every 2 s, ~65 % of one core while
+watched) via an `exec:` ffmpeg command, because go2rtc 1.9.14 rejects the Bullseye ffmpeg 4.3 for `ffmpeg:`
+sources ("unsupported version"); the Pi hardware encoder sent SPS/PPS only once (late viewers: endless spinner). Internal RTSP on
 127.0.0.1:8556 (8554 = crowsnest cam 1).
 
 ## Audio (and video) over WebRTC with go2rtc

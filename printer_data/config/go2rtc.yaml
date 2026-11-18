@@ -23,6 +23,7 @@ streams:
     # video is transcoded with our own exec: command. Software x264 (baseline, keyframe every 2 s): the Pi
     # hardware encoder (h264_v4l2m2m) in ffmpeg 4.3 sends SPS/PPS only once, so viewers who joined a running
     # stream never got a decodable frame. Wallclock timestamps: ustreamer delivers a variable frame rate.
+    # 960x540, 2 threads: ~65 % of one core, only while someone is watching (1280x720 used >100 %).
     - exec:ffmpeg -hide_banner -loglevel error -use_wallclock_as_timestamps 1 -f mjpeg -i http://127.0.0.1:8081/?action=stream -an -vf scale=960:540,format=yuv420p -c:v libx264 -threads 2 -preset ultrafast -tune zerolatency -profile:v baseline -force_key_frames expr:gte(t,n_forced*2) -b:v 1500k -maxrate 1500k -bufsize 750k -rtsp_transport tcp -f rtsp {output}
     - exec:ffmpeg -hide_banner -loglevel error -f alsa -ac 1 -ar 48000 -i plughw:CARD=Camera,DEV=0 -c:a libopus -b:a 48k -rtsp_transport tcp -f rtsp {output}
   usbcam_audio:
