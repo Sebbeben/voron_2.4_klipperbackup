@@ -123,8 +123,8 @@ Status 2026-11-17: printer homes, levels and probes again; hotend fan replaced; 
 - [ ] Physical X/Y microswitch endstops (BIQU CNC Tap V2 includes an X endstop arm; X -> Spider PB14, Y -> PB13, remove DIAG jumpers)
 - [ ] Emergency stop: latching 2-pole NC mushroom switch cutting L+N before the PSU and the bed SSR (PE never switched)
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
-- [ ] USB camera LED: not controllable over USB (Realtek RTS58xx XU is a register/flash mailbox - never write to it). Rewire the LED to a Klipper output (e.g. a free Spider/SB2040 pin via a MOSFET) and add an `output_pin`
-- [ ] USB camera microphone (ALSA card 3, works, ~-37 dBFS with fans running): get audio into Mainsail/Klipper (e.g. a stream with audio alongside ustreamer, or a Moonraker-side noise/knock monitor)
+- [ ] USB camera LED: not software-controllable (researched 2026-11-17) -> rewire the LED ring to 5 V via a MOSFET on a free MCU pin, `[output_pin camera_led]`. Plan in `printer_data/config/CAMERA_AUDIO.md`
+- [ ] USB camera microphone: go2rtc config ready and both ffmpeg chains tested (`go2rtc.yaml`, `CAMERA_AUDIO.md`); install go2rtc + service
 
 ### On site - power OFF
 - [x] USB cam (UICPAL OV5648, LED + mic on board): plug into the Pi, then read `lsusb -v` / `v4l2-ctl --list-ctrls` / `arecord -l` to find the LED control (likely a UVC extension unit) and test the mic. Add as cam 2 in crowsnest
