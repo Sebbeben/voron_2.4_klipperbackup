@@ -143,6 +143,7 @@ Plan:
 - [ ] Keep sensorless homing: recalibrate `driver_SGTHRS` and the home current (0.49 A) for the new motors
 - [ ] Re-run input shaper (re-enable klipper-mcu + `[mcu rpi]`/`[adxl345]`), X with `FREQ_END=170`
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
+- [ ] Belt tension by sound: macro moves the toolhead to the measuring position, user plucks the belt, script records ~3 s from the camera mic (via go2rtc RTSP, ALSA can only be opened once) and prints the dominant frequency (FFT, 60-250 Hz) with RESPOND. Voron 2.4 target ~110 Hz over a 150 mm span, A and B equal. Do it after the new motors are fitted
 - [ ] Later: 2 x BTT TMC2240 (SPI, StallGuard4 so sensorless homing keeps working) for X/Y -> 2504AC at ~1.6-1.8 A. Check the BTT module pinout against the Spider v1.1 SPI jumpers first
 - Spider v1.1 is 24 V only (100 uF 35 V caps at the drivers). 48 V or LDO "Super Power" 2804 motors need a new board or external drivers
 

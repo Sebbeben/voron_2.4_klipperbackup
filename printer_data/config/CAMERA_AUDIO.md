@@ -99,3 +99,8 @@ OBS, guvcview) see the camera (UVC) and the microphone (USB Audio) without any d
    ready MOSFET module), common ground with the camera.
 3. Gate from a free MCU pin: `[output_pin camera_led]` with `pwm: True` (dimmable) and a Mainsail switch.
 4. If there is an LDR on the ring, bypass it or keep it powered.
+
+## Ideas (later)
+- Speech boost in the go2rtc audio chain: `highpass` (keep it <= 60 Hz if the belt-tension measurement uses the
+  same stream), `acompressor`, `volume` +10-15 dB. Mic gain is already at max (+12 dB, saved with alsactl).
+- Belt tension by sound (see README TODO): FFT of a plucked belt, target ~110 Hz / 150 mm span on a V2.4.
