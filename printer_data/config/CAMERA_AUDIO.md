@@ -64,6 +64,8 @@ WantedBy=multi-user.target
   turned on. `system/mainsail_go2rtc_audio_patch.sh` adds `controls` to the player (video still autoplays
   muted; click the speaker icon). **Re-run the script after every Mainsail update**, then reload the
   browser with the cache cleared (service worker).
+- Play/pause and the timeline are hidden with `.theme/custom.css` (Chromium browsers); the patch also sets
+  `controlslist="nodownload noplaybackrate noremoteplayback"` and disables picture-in-picture.
 - nginx proxies go2rtc at `/go2rtc/` (installed with `system/install_nginx_go2rtc.sh`, backup
   `/etc/nginx/sites-available/mainsail.before_go2rtc`). Works on LAN and over WireGuard, and passes go2rtc's
   WebSocket origin check (a direct `http://192.168.0.7:1984` URL failed from 10.0.0.9: "origin not allowed").
