@@ -59,13 +59,14 @@ WantedBy=multi-user.target
 
 ### Mainsail (sound in the Mainsail UI) - done 2026-11-18
 - Webcam "USB Cam + ljud" added via Moonraker (`/server/webcams/item`): service `webrtc-go2rtc`,
-  URL `http://192.168.0.7:1984/api/webrtc?src=usbcam`, `extra_data.enableAudio: true`.
+  URL `/go2rtc/api/webrtc?src=usbcam` (nginx proxy, see below), `extra_data.enableAudio: true`.
 - Mainsail v2.19 creates the go2rtc `<video>` muted and without controls, so the sound could never be
   turned on. `system/mainsail_go2rtc_audio_patch.sh` adds `controls` to the player (video still autoplays
   muted; click the speaker icon). **Re-run the script after every Mainsail update**, then reload the
   browser with the cache cleared (service worker).
-- The URL uses the LAN IP: over WireGuard use the go2rtc page via 10.0.0.9:1984 instead (or add an nginx
-  proxy for go2rtc later).
+- nginx proxies go2rtc at `/go2rtc/` (installed with `system/install_nginx_go2rtc.sh`, backup
+  `/etc/nginx/sites-available/mainsail.before_go2rtc`). Works on LAN and over WireGuard, and passes go2rtc's
+  WebSocket origin check (a direct `http://192.168.0.7:1984` URL failed from 10.0.0.9: "origin not allowed").
 
 ### Ubuntu later (same support)
 
