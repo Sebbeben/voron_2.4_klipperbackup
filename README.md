@@ -70,6 +70,15 @@ The part fan (5015) config is still prepared (commented out) in `fan_upgrade.cfg
 
 ## Maintenance log
 
+### 2026-11-18 - A/B motor fault hunt, motors ordered, camera sound in Mainsail
+- Sensorless homing `uv_cp` fault traced step by step to **motor B** (supply, driver modules, X-MOT socket, both cables and endstop ports ruled out - details in TODO "A/B motor fault"). Motor A cable was also bad (open-load flags) and was replaced
+- `homing_v2.cfg`: `G4 P2000` before sensorless `G28 X`/`G28 Y` (Klipper TMC docs); X/Y `homing_speed` back to 80
+- Ordered 2 x LDO-42STH48-2504AC + 2 x adhesive heatsinks (3do.dk). Printer parked until they arrive; X-MOT/Y-MOT plugs and pins are temporarily swapped
+- Driver/motor research: Spider v1.1 is 24 V only (35 V caps); TMC2240 (SPI, StallGuard4) is the next driver step; LDO "Super Power" 2804 only pays off with 48 V; no vibration dampers on A/B
+- Chamber heater research (PTC 300-500 W, ~80 C practical limit, PA/PC possible, PEEK/PEI not) - TODO "Chamber heater"
+- USB camera sound: go2rtc v1.9.14 installed as a service, nginx proxy `/go2rtc/`, Mainsail webcam "USB Cam + ljud" (WebRTC go2rtc, audio). Video via software x264 960x540 (the Pi hardware encoder only sent SPS/PPS once). Mic gain +12 dB (saved). Mainsail player patched (`printer_data/config/system/mainsail_go2rtc_audio_patch.sh`, re-run after Mainsail updates) - Mainsail kept re-muting the video and had no controls. Old MJPEG "USB Cam" entry removed. Sound verified on another PC (not yet on the main PC - local browser/PC issue)
+- Camera LED: still no software control found (only Realtek raw-register XU 4, not touched). Connector has 5 pins - the extra pin is the next thing to check; seller asked
+
 ### 2026-11-17 - On site: homing, Tap, brush, Nevermore, input shaper, hotend fan
 - `G28 X` shut down with `TMC stepper_x GSTAT uv_cp=1` (charge-pump undervoltage). Homing "finished" instantly (driver fault raises DIAG = fake stall). **Cause: loose 24 V cable** - re-tightened, homing fine since. If `uv_cp` comes back, check the 24 V terminals first.
 - `homing_v2.cfg` enabled (fixed `SET_KINEMATIC_POSITION` defaulting to `SET_HOMED=xyz`), X/Y `homing_speed` 80 -> 40.
