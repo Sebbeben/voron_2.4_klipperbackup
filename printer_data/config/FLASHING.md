@@ -1,5 +1,9 @@
 # MCU firmware flashing plan
 
+**Status 2026-11-24:** host updated to Klipper v0.14.0; firmware rebuilt in `~/firmware_builds/v0.14.0/`.
+SB2040 flashed over CAN to v0.14.0-0-gc9559fa04 (OK). Spider: `firmware.bin` ready for the SD card in
+`firmware/spider_sdcard_v0.14.0/` (download via Mainsail -> Machine), sha256 `69c919ed...233e5`.
+
 Written 2026-11-13. Host Klipper is v0.13.0-827; the boards still run
 v0.13.0-120 (Spider) and v0.13.0-112 (SB2040). That works, but the next
 firmware build gives e.g. the larger CAN transmit buffer (canserial 192 bytes).
