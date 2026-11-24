@@ -1,7 +1,8 @@
 # MCU firmware flashing plan
 
 **Status 2026-11-24:** host updated to Klipper v0.14.0; firmware rebuilt in `~/firmware_builds/v0.14.0/`.
-SB2040 flashed over CAN to v0.14.0-0-gc9559fa04 (OK). Spider flashed via SD card (FAT32, `firmware.bin` in the root, no jumper) to v0.14.0-0-gc9559fa04 (OK,
+SB2040 flashed over CAN to v0.14.0-0-gc9559fa04 (OK). Spider flashed via SD card (FAT32, `firmware.bin` in the root, no jumper; this FYSETC bootloader renames it to
+`old.bin` when done, not `firmware.cur`) to v0.14.0-0-gc9559fa04 (OK,
 155 commands). The file is kept in `firmware/spider_sdcard_v0.14.0/`.
 
 Written 2026-11-13. (Historical, 2026-11-13: host v0.13.0-827, boards v0.13.0-120 (Spider) and v0.13.0-112 (SB2040).) That works, but the next
