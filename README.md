@@ -171,7 +171,7 @@ Plan:
 - [ ] Physical X/Y microswitch endstops (BIQU CNC Tap V2 includes an X endstop arm; X -> Spider PB14, Y -> PB13, remove DIAG jumpers)
 - [ ] Emergency stop: latching 2-pole NC mushroom switch cutting L+N before the PSU and the bed SSR (PE never switched)
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
-- [ ] USB camera LED: not software-controllable (researched 2026-11-17) -> rewire the LED ring to 5 V via a MOSFET on a free MCU pin, `[output_pin camera_led]`. Plan in `printer_data/config/CAMERA_AUDIO.md`
+- [x] USB camera LED: **dropped 2026-11-24.** Vendor docs: one ~8 lm 3020 LED driven by the camera firmware; the installed V107 only flashes it on still capture, the only always-on firmware (V100) most likely has no microphone. The microphone matters more, so the camera stays on V107. Details in `printer_data/config/CAMERA_AUDIO.md`
 - [x] USB camera microphone: go2rtc v1.9.14 installed 2026-11-18 (service `go2rtc`), video + sound at `http://<pi>:1984/stream.html?src=usbcam&mode=webrtc` (`go2rtc.yaml`, `CAMERA_AUDIO.md`)
 - [x] go2rtc webcam "USB Cam + ljud" in Mainsail with sound: player patched with `printer_data/config/system/mainsail_go2rtc_audio_patch.sh` (**re-run after Mainsail updates**)
 
