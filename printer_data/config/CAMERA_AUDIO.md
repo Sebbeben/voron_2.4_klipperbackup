@@ -79,9 +79,45 @@ ustreamer, so use the device directly in the stream, e.g.
 plus the same `exec:ffmpeg -f alsa ... plughw:CARD=Camera,DEV=0 ...` audio line. Desktop apps (Cheese,
 OBS, guvcview) see the camera (UVC) and the microphone (USB Audio) without any driver.
 
+## Vendor documents (received 2026-11-24)
+
+Unpacked in `~/camera_docs/vendor_20261124/` (zip from the seller: product spec PDF, LED datasheet,
+two firmware packages, Windows tools `amcap v3.0.9.exe` and `UvcCamDownload_AllInOne_RsProxy.exe` - not run).
+
+**Module:** YJX-C5M / board "YJX-C5", maker 深圳市永吉星光电 (Shenzhen Yongjixing), USB ID `0edc:2050`
+"YJXU502S USB Camera", Realtek UVC bridge.
+- OV5648 1/4", 1.4 um pixels, max 2592x1944, MJPEG 30 fps / YUYV 15 fps at UXGA (1600x1200)
+- Lens 72 deg fixed focus, PCB 1.2 mm, board 49.8 mm long, 9 mm wide, lens block 8.5 x 8.5 mm, 5.85 mm high
+- 5 V, 140 mA. **Working temperature -20..70 C** (storage 0..50 C) - at the limit in a 70-80 C chamber
+- **Connector 5P 1.0 mm: 1 VDD, 2 D-, 3 D+, 4 GND, 5 shield ground.** There is no LED pin.
+- Microphone on the board (spec: "audio input supported")
+
+**LED:** a single 3020 SMD white LED on the board (6000-7000 K, VF 2.8-3.4 V @ 20 mA, 30 mA max,
+7-9 lm, 120 deg). It is driven by the camera chip's firmware, not by a separate circuit. ~8 lm is only a
+fill/indicator light at close range; the chamber light remains Daylight on a stick.
+
+**Firmware (this is what decides the LED):**
+| Package | Version | LED behaviour | Notes |
+|---|---|---|---|
+| `YJX_OV5648_20181206_V100 (Continuous flash)` | V100, 2018-12-06 | LED on continuously | "initial version"; firmware has no "Realtek USB2.0 MIC" string -> microphone may be missing |
+| `YJX_OV5648_20190415_V107 (Camera flash)` | V107, 2019-04-15 | LED flashes on still capture ("拍照闪灯", added in V101) | V104 shading + low-light compensation, V105-V107 mic volume max + sound tuning |
+
+**Installed now: V107** (`bcdDevice 1.07`, serial string `20190415`). Still capture method 2 with
+hardware trigger support is in the descriptors, so the LED only lights for a still-photo trigger.
+Both `.rfw` files are kept in `~/camera_docs/vendor_20261124/fw_V100` and `fw_V107` (V107 = way back).
+
+Flashing (vendor procedure): Windows only, run `UvcCamDownload_AllInOne_RsProxy.exe` from the package with
+the camera plugged in, START, wait for green PASS; if it fails, replug and repeat.
+
 ## LED
 
-**Not controllable from software** (web research 2026-11-17):
+Options after the vendor documents (2026-11-24):
+1. Flash V100 "Continuous flash" -> LED always on, but likely loses the microphone and the V104 image
+   tuning. Test on the Windows laptop, check LED + mic, flash V107 back if the mic is gone.
+2. Hardware: lift the LED's drive from the chip and feed it from 5 V via resistor + MOSFET on a free MCU pin
+   (one 3020 LED: ~100 ohm from 5 V for ~20 mA), `[output_pin camera_led]`.
+
+Earlier research (2026-11-17), still valid:
 
 - The only vendor control is UVC extension unit 4, GUID `{1229a78c-47b4-4094-b0ce-db07386fb938}`. It is a
   generic Realtek raw register access unit (same GUID/layout on HP laptop webcams with no LED), not an LED
