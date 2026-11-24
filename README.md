@@ -156,9 +156,16 @@ Plan:
 - [ ] Later: 2 x BTT TMC2240 (SPI, StallGuard4 so sensorless homing keeps working) for X/Y -> 2504AC at ~1.6-1.8 A. Check the BTT module pinout against the Spider v1.1 SPI jumpers first
 - Spider v1.1 is 24 V only (100 uF 35 V caps at the drivers). 48 V or LDO "Super Power" 2804 motors need a new board or external drivers
 
-### Chamber heater (idea)
+### Chamber heater
 - [ ] PTC heater with fan for PA/PC (chamber 60-80 C): ~300-500 W, SSR + `[heater_generic chamber]`, `max_temp` ~70-80, fan interlocked, thermal fuse in series, mount in PA-CF/GF. Measure the bed-only chamber heat loss first (bed 110 C, 60-90 min) to size it. Practical limit for this Voron ~80 C (motors, belts, rail grease); PEEK/PEI/PEKK are out of reach
 - [ ] Insulate panels/floor first (cheap, +5-10 C)
+- Candidate: PTCYIDU (Shanghai Yidu) insulated PTC air heater JQ-96A2-220V-500W-CK, 140x50.5x26 mm, 230 V 500 W (inrush ~1000 W / 4 A), PA66 end brackets, built-in auto-reset bimetal on the side (opens 150 C, recloses 130 C), chip Ts 260 C
+  - Fin surface: ~230 C with NO airflow, 80-120 C with fan (vendor, 2026-11-23)
+  - **Insulation not trusted:** datasheet withstand voltage only 400 V; vendor cannot guarantee 1500 V AC/1 min, >=100 MOhm @500 V DC or <=0.75 mA leakage; no PE point on the aluminium (custom option). CE/RoHS + UL test report available on request
+  - [ ] **Ground it ourselves:** clamp (stainless clip/hose clamp) on the outer aluminium edge, oxide scraped, serrated washer, crimped ring lug, green/yellow >= 0.75 mm2 to the printer PE terminal. **Never drill/screw into the tubes** (PTC chips + PI film inside). Check every tube/fin row to the PE pin of the plug < 0.5 Ohm (fins may be glued with non-conductive adhesive). Ideally 500 V insulation test L/N -> PE before first use. 30 mA RCD on the circuit (test button)
+  - [ ] One-shot thermal fuse in series with L, clamped to the aluminium next to the bimetal: SANTE 10A 172 C 250 V axial, LCSC/JLC **C496729** (holding 142 C, so no nuisance trips with fan at 80-120 C; only opens if the bimetal fails). Crimp or heat-sink the leads when soldering
+  - [ ] Klipper: SSR, `[heater_generic chamber]` with `max_temp` ~80, `verify_heater`; heater only allowed while the heater fan tach reads RPM
+  - [ ] Mount on metal or PA66/PEEK standoffs: assume 230 C at the fins if the fan stops
 
 ### Future
 - [ ] Physical X/Y microswitch endstops (BIQU CNC Tap V2 includes an X endstop arm; X -> Spider PB14, Y -> PB13, remove DIAG jumpers)
