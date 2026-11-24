@@ -1,4 +1,4 @@
-# USB camera: audio + LED
+# USB camera: audio (LED dropped)
 
 Camera: "UICPAL" OV5648 5 MP AF, USB 0edc:2050, iManufacturer `YJXU502S`, Realtek RTS58xx bridge.
 Video via crowsnest `[cam 2]` (ustreamer, port 8081, 1920x1080 @ 15). Microphone = ALSA card `Camera`
@@ -110,6 +110,9 @@ Flashing (vendor procedure): Windows only, run `UvcCamDownload_AllInOne_RsProxy.
 the camera plugged in, START, wait for green PASS; if it fails, replug and repeat.
 
 ## LED
+
+**Decision 2026-11-24: no LED.** The camera stays on firmware V107 because the microphone is far more
+important than one ~8 lm LED. Do not flash V100. Kept below for reference only.
 
 Options after the vendor documents (2026-11-24):
 1. Flash V100 "Continuous flash" -> LED always on, but likely loses the microphone and the V104 image
