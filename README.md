@@ -164,7 +164,7 @@ Plan:
   - **Insulation not trusted:** datasheet withstand voltage only 400 V; vendor cannot guarantee 1500 V AC/1 min, >=100 MOhm @500 V DC or <=0.75 mA leakage; no PE point on the aluminium (custom option). CE/RoHS + UL test report available on request
   - [ ] **Ground it ourselves:** clamp (stainless clip/hose clamp) on the outer aluminium edge, oxide scraped, serrated washer, crimped ring lug, green/yellow >= 0.75 mm2 to the printer PE terminal. **Never drill/screw into the tubes** (PTC chips + PI film inside). Check every tube/fin row to the PE pin of the plug < 0.5 Ohm (fins may be glued with non-conductive adhesive). Ideally 500 V insulation test L/N -> PE before first use. 30 mA RCD on the circuit (test button)
   - [ ] One-shot thermal fuse in series with L, clamped to the aluminium next to the bimetal: SANTE 10A 172 C 250 V axial, LCSC/JLC **C496729** (holding 142 C, so no nuisance trips with fan at 80-120 C; only opens if the bimetal fails). Crimp or heat-sink the leads when soldering
-  - [ ] Klipper: SSR, `[heater_generic chamber]` with `max_temp` ~80, `verify_heater`; heater only allowed while the heater fan tach reads RPM
+  - [ ] Klipper: draft ready in `printer_data/config/chamber_heater.cfg` (not included): SSR on E1-OUT `PC8`, fan on FAN1 `PB1` with tach on `PA1`, control sensor PC0 (chamber_air moves there), `CHAMBER_HEAT TARGET=` max 65 C (camera rated 70 C), fan-rpm guard, chamber_top `max_temp` 90 as backstop. Needs a 2nd SSR + a 24 V 4-wire fan
   - [ ] Mount on metal or PA66/PEEK standoffs: assume 230 C at the fins if the fan stops
 
 ### Future
