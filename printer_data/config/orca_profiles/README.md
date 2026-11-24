@@ -50,3 +50,18 @@ is calibrated. TPU uses 1.0.
 4. Orca -> Calibration -> Pressure advance (per material) -> enable PA in the filament profile
 5. Orca -> Calibration -> Flow rate (pass 1 + 2)
 6. After input shaper: raise accelerations here **and** `max_accel` in printer.cfg
+
+## hpm/ - home power monitor enclosure test prints (added 2026-11-24)
+Adapted from the HPM project's presets (`hpm_print_voron.zip`, `PRINTING.md`) to this printer: printer
+`Voron 2.4 350 Rapido 0.4` instead of the stock `Voron 2.4 350 0.4 nozzle`, and our ABS + `0.20mm Strong`
+values instead of Orca's generic ones. Orca user presets cannot inherit other user presets, so the values are copied.
+
+| Preset | Based on | HPM changes |
+|---|---|---|
+| `HPM ABS @Voron 2.4 350 Rapido` | our ABS (250/255 C, bed 105/110, flow 0.92, 15 mm3/s) | XY shrink 99.5 %, fan 10-30 %, off 3 layers |
+| `HPM enclosure base ABS ...` | our 0.20mm Strong (speeds, accels, seam, xy comp -0.05) | first layer 0.2, Arachne 3 walls, 5/4 shells, 40 % gyroid, **no brim**, no supports |
+| `HPM enclosure cover ABS ...` | same | as base but 30 % gyroid, outer brim 5 mm, tree supports on plate only, 40 deg |
+
+Import: File -> Import -> Import Configs, the three files in `hpm/`. With the temporary V6 nozzle lower the
+filament's max volumetric speed to ~10. First print = fit test: check the latch gaps, the cover lip (0.2 mm per
+side) and the rail slots; if holes come out tight, `xy_contour_compensation -0.05` (ours) is the first knob.
