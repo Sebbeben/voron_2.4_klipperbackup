@@ -7,7 +7,9 @@ Usage:
 
 Pluck the belt span 3-6 times while it records (about 1 s apart, same spot, same
 strength). Voron 2.4 target: ~110 Hz on a 150 mm span (A and B belts within a few Hz).
-Turn the fans off if possible; keep the microphone close (move the camera if needed).
+The part fan and the Nevermore are switched off during the recording and restored
+afterwards (--keep-fans to skip). Heater fans (hotend, controller) are never forced off:
+measure with a cold printer. Keep the microphone close (move the camera if needed).
 
 The microphone is ALSA card "Camera" (plughw:CARD=Camera,DEV=0). If go2rtc is streaming
 audio at that moment the device is busy, and the script records from go2rtc's RTSP
@@ -24,6 +26,48 @@ import numpy as np
 DEVICE = "plughw:CARD=Camera,DEV=0"
 RATE = 16000
 GO2RTC_AUDIO = "rtsp://127.0.0.1:8556/usbcam_audio"  # fallback when the ALSA device is busy
+
+
+MOONRAKER = "http://localhost:7125"
+
+
+def _api(path, script=None):
+    import json
+    import urllib.request
+    if script is None:
+        req = urllib.request.Request(MOONRAKER + path)
+    else:
+        req = urllib.request.Request(MOONRAKER + "/printer/gcode/script",
+                                     data=json.dumps({"script": script}).encode(),
+                                     headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.load(r)
+
+
+def fans_off():
+    """Switch off the fans Klipper may switch off; return G-code that restores them.
+    Heater-controlled fans (hotend, controller) are never forced off - only reported."""
+    try:
+        st = _api("/printer/objects/query?fan&fan_generic%20nevermore"
+                  "&heater_fan%20hotend_fan&heater_fan%20controller_fan")["result"]["status"]
+    except Exception as e:  # Klipper not running: just measure
+        print(f"(could not read fans from Moonraker: {e})")
+        return ""
+    restore = []
+    part = st.get("fan", {}).get("speed", 0) or 0
+    if part > 0:
+        _api(None, "M107")
+        restore.append(f"M106 S{round(part * 255)}")
+    nev = st.get("fan_generic nevermore", {}).get("speed", 0) or 0
+    if nev > 0:
+        _api(None, "SET_FAN_SPEED FAN=nevermore SPEED=0")
+        restore.append(f"SET_FAN_SPEED FAN=nevermore SPEED={nev:.2f}")
+    for name, why in (("heater_fan hotend_fan", "hotend > 50 C"), ("heater_fan controller_fan", "bed > 45 C")):
+        if (st.get(name, {}).get("speed", 0) or 0) > 0:
+            print(f"WARNING: {name.split()[1]} is running ({why}) and is left on - let it cool for a clean result")
+    if restore:
+        print("Fans off for the measurement: part fan / Nevermore")
+    return "\n".join(restore)
 
 
 def record(seconds, path):
@@ -89,13 +133,23 @@ def main():
     ap.add_argument("--fmax", type=float, default=250.0)
     ap.add_argument("--wav", help="analyse an existing 16-bit WAV instead of recording")
     ap.add_argument("--save", help="keep the recording as this WAV file")
+    ap.add_argument("--keep-fans", action="store_true", help="do not switch the part fan / Nevermore off")
     a = ap.parse_args()
 
     if a.wav:
         path = a.wav
     else:
         path = a.save or tempfile.mktemp(suffix=".wav")
-        record(a.seconds, path)
+        restore = "" if a.keep_fans else fans_off()
+        try:
+            if restore:
+                import time
+                time.sleep(3)  # let the fans spin down
+            record(a.seconds, path)
+        finally:
+            if restore:
+                _api(None, restore)
+                print("Fans restored")
 
     x, rate = load(path)
     onsets, floor_db = find_plucks(x, rate)
