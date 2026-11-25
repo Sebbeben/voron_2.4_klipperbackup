@@ -14,7 +14,7 @@ Temperatures are the maker's label values; our Orca preset is in the last column
 | 7 | eco (Creative Tools) | ABS | Light grey | 1 kg | - | 3301828 "ECO - ABS - 1.75mm - Ljusgrå" | box (new?) | ABS |
 | 8 | ScapeFill (scape.se, made in EU) | ABS | Silver | 1 kg | 245 +-10 / 90-110 | 785022 | ? | ABS |
 | 9 | Unbranded | ABS | White | 1 kg? | 230-270 / - | 100021, S/N 0724001021Z | vacuum bag | ABS |
-| 10 | Clas Ohlson Universal | PETG | Black (article -1 = black, cf. PLA 38-7986-1) | 1 kg | 220-245 / - | 38-9247-1, B/N 2202123127 | ? | PETG |
+| 10 | Clas Ohlson Universal | PETG | Black (assumed: article suffix -1 = black) | 1 kg | 220-245 / - | 38-9247-1, B/N 2202123127 | ? | PETG |
 | 11 | Clas Ohlson Universal | PETG | Black | 1 kg | 220-240 / - | 38-9247-1, Lot 20061197931 | ? | PETG |
 | 12 | Xingtongzhilian | PETG | Transparent | 1 kg | 210-230 / 55-78 | X001GPOEIZ | box (new?) | PETG |
 | 13 | Clas Ohlson Universal | PLA | Yellow | 1 kg | 190-220 / - | 38-7986-8, Lot 180771597 | ? | PLA |
