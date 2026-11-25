@@ -24,8 +24,16 @@ Temperatures are the maker's label values; our Orca preset is in the last column
 | 17 | Unbranded "PA (Nylon) filament" | PA | Black | 1 kg | handwritten "250-27x" | SKU 741000045-0, made 2019-01-15 | box | PA Nylon |
 | 18 | Frontierfila | POM | Natural? | 1 kg | 210-270 (start 250) / 80-100 | - | vacuum bag + humidity card | POM |
 | 19 | Clas Ohlson Universal | PLA | Black | 1 kg | 190-220 / - | 38-7986-1, Lot 20061197165 | ? (part used) | PLA |
-| 20 | PrimaSelect | ABS | Red | 1 kg | 220-250 / 80-100 | PS-ABS-175-1000-RD | ~1/4? (maybe the same spool as #2) | ABS |
-| 21 | R3D Filament | ABS | Black | 1 kg | 220-260 / - | - | ? (open) | ABS |
+| 20 | PrimaSelect | ABS | Red | 1 kg | 220-250 / 80-100 | PS-ABS-175-1000-RD | ~1/4 (separate spool) | ABS |
+| 21 | R3D Filament | ABS | Black | 1 kg | 220-260 / - | - | ? - **loaded in the printer** (2026-11-25) | ABS |
+
+## Purchases
+| Date | Shop | Item | Qty | Price incl. VAT | Per kg |
+|---|---|---|---|---|---|
+| 2025-04-11 | 3D Prima (3dprima.com), invoice 45139551 | PrimaSelect ABS Red 1 kg (EAN 7340002120041) | 4 | 209.30 SEK each | ~209 SEK |
+| 2025-04-11 | 3D Prima, same invoice | PrimaSelect ABS Black 2.5 kg (EAN 7340002124117) | 2 | 489.30 SEK each | ~196 SEK |
+
+Freight 159.90 SEK incl. VAT on that order. Of the 4 red: #2, #3, #20 seen (1 not seen). Of the 2 black 2.5 kg: #1 seen (1 not seen).
 
 ## Notes
 - Spools from 2019 (TPU #16, PA #17) and anything stored open: dry before use (`DRY_ABS`-style bed
