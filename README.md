@@ -154,7 +154,7 @@ Plan:
 - [ ] Keep sensorless homing: recalibrate `driver_SGTHRS` and the home current (0.49 A) for the new motors
 - [ ] Re-run input shaper (re-enable klipper-mcu + `[mcu rpi]`/`[adxl345]`), X with `FREQ_END=170`
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
-- [ ] Belt tension by sound: macro moves the toolhead to the measuring position, user plucks the belt, script records ~3 s from the camera mic (via go2rtc RTSP, ALSA can only be opened once) and prints the dominant frequency (FFT, 60-250 Hz) with RESPOND. Voron 2.4 target ~110 Hz over a 150 mm span, A and B equal. Do it after the new motors are fitted
+- [x] Belt tension by sound: `printer_data/config/tools/belt_freq.py` (2026-11-25). Records the camera mic (ALSA, or go2rtc RTSP `usbcam_audio` when the mic is busy), finds each pluck and prints the fundamental (FFT 60-250 Hz) per pluck + median. Run `python3 ~/printer_data/config/tools/belt_freq.py --seconds 8`, pluck 3-6 times. Tested with synthetic plucks (110.2 Hz); real belts after the motor swap. Ambient peak ~82 Hz from the fans - turn them off while measuring
 - [ ] Later: 2 x BTT TMC2240 (SPI, StallGuard4 so sensorless homing keeps working) for X/Y -> 2504AC at ~1.6-1.8 A. Check the BTT module pinout against the Spider v1.1 SPI jumpers first
 - Spider v1.1 is 24 V only (100 uF 35 V caps at the drivers). 48 V or LDO "Super Power" 2804 motors need a new board or external drivers
 
@@ -170,6 +170,7 @@ Plan:
   - [ ] Mount on metal or PA66/PEEK standoffs: assume 230 C at the fins if the fan stops
 
 ### Future
+- [ ] Filament inventory (`printer_data/config/orca_profiles/FILAMENT_INVENTORY.md`): fill in the amount left on the opened spools, find the 4th PrimaSelect red 1 kg and the 2nd PrimaSelect black 2.5 kg (bought 2025-04-11), photo of the transparent PLA label (#22, ScapeFill?). Per-brand Orca presets after flow/PA/max-flow calibration (PrimaSelect ABS first)
 - [ ] Physical X/Y microswitch endstops, remove the DIAG jumpers when switching. X: switch on the CNC Tap V2 mount -> SB2040 ENDSTOP_1 `gpio29` (JP10, on-board 4.7k pull-up; NC switch: `SB2040:gpio29`, NO switch: `!SB2040:gpio29`). Y: switch on the rear gantry above motor A -> Spider Y- `PB13`. 2026-11-25: 4-core cable pulled through the Z drag chain with the new motors (Y signal + GND, 2 spare cores), **not plugged into the Spider yet** (X-/Y- ports share PB14/PB13 with the DIAG jumpers)
 - [ ] Better toolhead board that fits the toolhead - the SB2040 cannot be mounted where it should because the Orbiter screw sits there (currently taped)
 - [ ] Emergency stop: latching 2-pole NC mushroom switch cutting L+N before the PSU and the bed SSR (PE never switched)
@@ -197,7 +198,8 @@ Plan:
 ### Needs motion
 - [x] Test and enable `homing_v2.cfg` (2026-11-17)
 - [ ] Test and enable `load_unload_filament_v2.cfg`
-- [ ] Belt tension with the FYSETC gauge: ~110 Hz over 150 mm, A/B within 2 Hz
+- [ ] Belt tension ~110 Hz over 150 mm, A/B within 2 Hz: `tools/belt_freq.py` (camera mic) or a phone app
+- [ ] Homing repeat test after the motor swap: `tools/homing_test.sh 10` (stops at the first error)
 - [x] `SHAPER_CALIBRATE` + `SAVE_CONFIG` (2026-11-17, provisional - redo when the toolhead is finished, X with `FREQ_END=170`)
 - [ ] Extruder `rotation_distance`, then OrcaSlicer flow, PA and max volumetric flow tests
 - [ ] Enable `heatsoak.cfg` + `print_start_v2.cfg` (rename old macro to `PRINT_START_OLD`), test with an ABS print

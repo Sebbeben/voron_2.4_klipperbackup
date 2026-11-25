@@ -142,4 +142,4 @@ Earlier research (2026-11-17), still valid:
 ## Ideas (later)
 - Speech boost in the go2rtc audio chain: `highpass` (keep it <= 60 Hz if the belt-tension measurement uses the
   same stream), `acompressor`, `volume` +10-15 dB. Mic gain is already at max (+12 dB, saved with alsactl).
-- Belt tension by sound (see README TODO): FFT of a plucked belt, target ~110 Hz / 150 mm span on a V2.4.
+- Belt tension by sound: done, `tools/belt_freq.py` (see README). Target ~110 Hz / 150 mm span on a V2.4.
