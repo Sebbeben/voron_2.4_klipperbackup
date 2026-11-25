@@ -39,12 +39,13 @@ Klipper configuration backup for my Voron 2.4 350 (pushed automatically by [Klip
 | Electronics bay | Kit 6020 fans | Spider `PB2` (on when bed > 45 C) | Check that they still spin |
 | Nevermore Duo | 2 x blower | Spider FAN0 `PB0` | Installed 2026-11-17 |
 
-Hotend fan config: `printer.cfg` `[heater_fan hotend_fan]` (wiring in the comments). Stall watchdog: `hotend_fan_alarm.cfg` (included, but idle: **tach dropped 2026-11-25**, `gpio29` goes to the X endstop instead).
+Hotend fan config: `printer.cfg` `[heater_fan hotend_fan]` (wiring in the comments). Stall watchdog: `hotend_fan_alarm.cfg` (included, idle until the tach is wired; plan 2026-11-25: tach -> SB2040 ENDSTOP_2 `gpio25`).
 
 **Hotend fan wiring notes (learned the hard way, 2026-11-17):**
 - On the Mellow fan adapter, "AGND" is the *switched* fan ground (low-side MOSFET), not analog ground. 2-wire / non-PWM fans go 24V + AGND.
 - The adapter's "3 Line: S = PWM" row is for PWM fans only. A tach wire must **never** go to PWM0/PWM1: with the white tach on PWM0 (`gpio16`) the SB2040 MCU temperature read 120-135 C and Klipper shut down.
-- The adapter has no tach input. The SB2040 v1 has only three inputs (`gpio28` = Tap, `gpio29`, `gpio25` = 24 V input / status LED); `gpio29` is reserved for the X endstop, so the white tach wire stays unconnected. Revisit with a better toolhead board.
+- The adapter has no tach input. SB2040 v1 inputs (schematic REV 1.0): ENDSTOP_0 `gpio28` (JP9, 4.7k pull-up to 3V3, Tap), ENDSTOP_1 `gpio29` (JP10, 4.7k pull-up, reserved for the X endstop), ENDSTOP_2 `gpio25` (JP11: 1 = signal, 2 = GND, 3 = **24 V**; input through a 1N4148 cathode-to-connector + 1k, 100 nF on the connector side, no pull-up -> 24 V tolerant, pulls low only). Status LED is `gpio24`, not 25.
+- Tach plan: white wire -> JP11 pin 1, nothing on pin 3, `tachometer_pin: ^SB2040:gpio25`. First measure the white wire with the fan running and unconnected: if it shows a voltage the fan has its own pull-up and it works directly; if ~0 V add a 10k pull-up from the tach line to JP11 pin 3 (24 V), because the 100 nF + internal ~50k pull-up through the diode is too slow for ~310 Hz.
 
 The part fan (5015) config is still prepared (commented out) in `fan_upgrade.cfg`.
 
@@ -168,8 +169,8 @@ Plan:
   - [ ] Mount on metal or PA66/PEEK standoffs: assume 230 C at the fins if the fan stops
 
 ### Future
-- [ ] Physical X/Y microswitch endstops, remove the DIAG jumpers when switching. X: switch on the CNC Tap V2 mount -> SB2040 LIMIT_1 `gpio29` (Mellow example: `!SB2040:gpio29`). Y: switch on the rear gantry above motor A -> Spider Y- `PB13`. 2026-11-25: 4-core cable pulled through the Z drag chain with the new motors (Y signal + GND, 2 spare cores), **not plugged into the Spider yet** (X-/Y- ports share PB14/PB13 with the DIAG jumpers)
-- [ ] Better toolhead board (more inputs, e.g. for the hotend fan tach) that fits the toolhead - the SB2040 cannot be mounted where it should because the Orbiter screw sits there (currently taped)
+- [ ] Physical X/Y microswitch endstops, remove the DIAG jumpers when switching. X: switch on the CNC Tap V2 mount -> SB2040 ENDSTOP_1 `gpio29` (JP10, on-board 4.7k pull-up; NC switch: `SB2040:gpio29`, NO switch: `!SB2040:gpio29`). Y: switch on the rear gantry above motor A -> Spider Y- `PB13`. 2026-11-25: 4-core cable pulled through the Z drag chain with the new motors (Y signal + GND, 2 spare cores), **not plugged into the Spider yet** (X-/Y- ports share PB14/PB13 with the DIAG jumpers)
+- [ ] Better toolhead board that fits the toolhead - the SB2040 cannot be mounted where it should because the Orbiter screw sits there (currently taped)
 - [ ] Emergency stop: latching 2-pole NC mushroom switch cutting L+N before the PSU and the bed SSR (PE never switched)
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
 - [x] USB camera LED: **dropped 2026-11-24.** Vendor docs: one ~8 lm 3020 LED driven by the camera firmware; the installed V107 only flashes it on still capture, the only always-on firmware (V100) most likely has no microphone. The microphone matters more, so the camera stays on V107. Details in `printer_data/config/CAMERA_AUDIO.md`
@@ -184,7 +185,7 @@ Plan:
 - [ ] Chamber NTCs: fit 3 x NTC 100K temporarily (PC0 rear mid, PC1 side mid, PC2 top), compare during a heatsoak, keep the best as `chamber_air` - see `chamber_sensors.cfg`. Check gantry clearance, cable length to the electronics bay
 - [x] Hotend fan fitted 2026-11-17 (tach not wired yet)
 - [ ] Part fan 5015 (see `fan_upgrade.cfg`)
-- [x] Hotend fan tach: **dropped 2026-11-25** (`gpio29` used for the X endstop; revisit with a new toolhead board)
+- [ ] Hotend fan tach -> SB2040 ENDSTOP_2 `gpio25` (JP11 pin 1, see the wiring notes above), then enable `tachometer_pin: ^SB2040:gpio25` (watchdog in `hotend_fan_alarm.cfg`)
 
 ### On site - heaters only, bed empty
 - [ ] Bed `max_power` 0.6 -> 1.0 + `PID_CALIBRATE HEATER=heater_bed TARGET=110`, check electronics fans start at bed > 45 C
