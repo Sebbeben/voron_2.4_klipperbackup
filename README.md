@@ -154,7 +154,7 @@ Plan:
 - [ ] Keep sensorless homing: recalibrate `driver_SGTHRS` and the home current (0.49 A) for the new motors
 - [ ] Re-run input shaper (re-enable klipper-mcu + `[mcu rpi]`/`[adxl345]`), X with `FREQ_END=170`
 - [ ] Restore Z `position_max` 340 when the chamber NTCs are moved
-- [x] Belt tension by sound: `printer_data/config/tools/belt_freq.py` (2026-11-25). Records the camera mic (ALSA, or go2rtc RTSP `usbcam_audio` when the mic is busy), finds each pluck and prints the fundamental (FFT 60-250 Hz) per pluck + median. Run `python3 ~/printer_data/config/tools/belt_freq.py --seconds 8`, pluck 3-6 times. Tested with synthetic plucks (110.2 Hz); real belts after the motor swap. Ambient peak ~82 Hz from the fans - turn them off while measuring
+- [x] Belt tension by sound: `printer_data/config/tools/belt_freq.py` (2026-11-25). Records the camera mic (ALSA, or go2rtc RTSP `usbcam_audio` when the mic is busy), finds each pluck and prints the fundamental (FFT 60-250 Hz) per pluck + median. Run macro `BELT_FREQ [SECONDS=8]` (Mainsail / KlipperScreen Macros, result in the console; `tools/belt_freq.cfg` + KIAUH `gcode_shell_command.py` in klippy/extras, git-excluded) or `python3 ~/printer_data/config/tools/belt_freq.py --seconds 8`, pluck 3-6 times. Tested with synthetic plucks (110.2 Hz); real belts after the motor swap. Ambient peak ~82 Hz from the fans - turn them off while measuring
 - [ ] Later: 2 x BTT TMC2240 (SPI, StallGuard4 so sensorless homing keeps working) for X/Y -> 2504AC at ~1.6-1.8 A. Check the BTT module pinout against the Spider v1.1 SPI jumpers first
 - Spider v1.1 is 24 V only (100 uF 35 V caps at the drivers). 48 V or LDO "Super Power" 2804 motors need a new board or external drivers
 

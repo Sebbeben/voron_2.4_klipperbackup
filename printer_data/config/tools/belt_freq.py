@@ -126,8 +126,85 @@ def peak_freq(seg, rate, fmin, fmax):
     return f, snr
 
 
+def live(fmin, fmax, max_seconds):
+    """Stream from the mic until stopped (SIGTERM / Ctrl+C / max_seconds).
+    Machine-readable output, one line each:
+      SOURCE alsa|go2rtc
+      LEVEL <dBFS>                 (every 0.2 s)
+      PLUCK <Hz> <peak dB> <ok 1|0>
+      END
+    Used by the KlipperScreen panel (tools/ks_belt_freq.py)."""
+    import signal
+    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+    arec = ["arecord", "-q", "-D", DEVICE, "-f", "S16_LE", "-c", "1", "-r", str(RATE), "-t", "raw"]
+    proc = subprocess.Popen(arec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    first = proc.stdout.read(3200)
+    src = "alsa"
+    if len(first) < 3200:  # ALSA busy -> go2rtc
+        proc.kill()
+        ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-i", GO2RTC_AUDIO,
+              "-vn", "-ac", "1", "-ar", str(RATE), "-f", "s16le", "-"]
+        proc = subprocess.Popen(ff, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        first = b""
+        src = "go2rtc"
+    print(f"SOURCE {src}", flush=True)
+
+    hop = int(RATE * 0.01)            # 10 ms energy frames
+    need_after = int(0.53 * RATE)     # 30 ms skip + 500 ms analysis window
+    buf = np.zeros(0)
+    floor = None
+    pending = None                    # sample index (in buf) of an onset waiting for data
+    last_onset_t = -1e9
+    t0 = 0                            # absolute sample index of buf[0]
+    level_acc, level_n = 0.0, 0
+    prev_env = 0.0
+    try:
+        data = first
+        while True:
+            if not data:
+                data = proc.stdout.read(1600)   # 50 ms
+                if not data:
+                    break
+            x = np.frombuffer(data[: len(data) // 2 * 2], dtype=np.int16).astype(np.float64) / 32768.0
+            data = b""
+            start_len = len(buf)
+            buf = np.concatenate([buf, x])
+            # energy per 10 ms frame for the new samples
+            for i in range(start_len - start_len % hop, len(buf) - hop + 1, hop):
+                env = float(np.sqrt(np.mean(buf[i:i + hop] ** 2)) + 1e-9)
+                floor = env if floor is None else (0.995 * floor + 0.005 * env if env < 4 * floor else floor)
+                level_acc += env; level_n += 1
+                if level_n >= 20:
+                    print(f"LEVEL {20 * np.log10(level_acc / level_n):.0f}", flush=True)
+                    level_acc, level_n = 0.0, 0
+                t_abs = (t0 + i) / RATE
+                if pending is None and env > 6 * floor and prev_env <= 6 * floor and t_abs - last_onset_t > 0.4:
+                    pending = i
+                    last_onset_t = t_abs
+                prev_env = env
+            if pending is not None and len(buf) - pending >= need_after:
+                s = pending + int(0.03 * RATE)
+                f, snr = peak_freq(buf[s:s + int(0.5 * RATE)], RATE, fmin, fmax)
+                print(f"PLUCK {f:.1f} {snr:.1f} {1 if snr >= 15 else 0}", flush=True)
+                pending = None
+            # keep ~1 s of history
+            keep = RATE
+            if pending is None and len(buf) > keep:
+                drop = (len(buf) - keep) // hop * hop
+                buf = buf[drop:]; t0 += drop
+            if max_seconds and t0 / RATE > max_seconds:
+                break
+    except KeyboardInterrupt:
+        pass
+    finally:
+        proc.kill()
+        print("END", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--live", action="store_true", help="stream until stopped, machine-readable output (KlipperScreen)")
+    ap.add_argument("--max-seconds", type=int, default=300, help="--live safety limit")
     ap.add_argument("--seconds", type=int, default=8)
     ap.add_argument("--fmin", type=float, default=60.0)
     ap.add_argument("--fmax", type=float, default=250.0)
@@ -135,6 +212,10 @@ def main():
     ap.add_argument("--save", help="keep the recording as this WAV file")
     ap.add_argument("--keep-fans", action="store_true", help="do not switch the part fan / Nevermore off")
     a = ap.parse_args()
+
+    if a.live:
+        live(a.fmin, a.fmax, a.max_seconds)
+        return
 
     if a.wav:
         path = a.wav
