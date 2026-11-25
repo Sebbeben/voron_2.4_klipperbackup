@@ -76,6 +76,15 @@ class Panel(ScreenPanel):
     def _color(f):
         return "#4caf50" if abs(f - TARGET) <= TOLERANCE else "#ff9800"
 
+    @staticmethod
+    def _advice(f):
+        # Frequency rises with the square root of the tension: +10 % tension ~ +5 % frequency.
+        if f < TARGET - TOLERANCE:
+            return '<b><span foreground="#ff9800">TIGHTEN</span></b> (too loose)'
+        if f > TARGET + TOLERANCE:
+            return '<b><span foreground="#ff9800">LOOSEN</span></b> (too tight)'
+        return '<b><span foreground="#4caf50">OK</span></b>'
+
     def _update_ab(self):
         a, b = self.saved["A"], self.saved["B"]
         txt = "A: " + (f"{a:.1f} Hz" if a else "-") + "    B: " + (f"{b:.1f} Hz" if b else "-")
@@ -83,6 +92,12 @@ class Panel(ScreenPanel):
             d = a - b
             col = "#4caf50" if abs(d) <= 2 else "#ff9800"
             txt += f'    <span foreground="{col}">A-B {d:+.1f} Hz</span>'
+            if abs(d) > 2:
+                # Adjust the belt that is further from the target.
+                far, near = ("A", "B") if abs(a - TARGET) >= abs(b - TARGET) else ("B", "A")
+                fv = self.saved[far]
+                act = "tighten" if fv < self.saved[near] else "loosen"
+                txt += f'\n<b>{act} {far}</b> to match {near}'
         self.ab.set_markup(txt)
 
     def _update_results(self):
@@ -91,7 +106,7 @@ class Panel(ScreenPanel):
             m = statistics.median(good)
             self.median.set_markup(f'Median <b><span foreground="{self._color(m)}">{m:.1f} Hz</span></b>'
                                    f'  ({len(good)} plucks, {min(good):.1f}-{max(good):.1f})'
-                                   f'  {m - TARGET:+.1f} Hz vs target')
+                                   f'  {m - TARGET:+.1f} Hz vs target\n{self._advice(m)}')
         else:
             self.median.set_text("")
         last = self.plucks[-8:]
@@ -200,7 +215,9 @@ class Panel(ScreenPanel):
             f, ok = float(parts[1]), parts[3] == "1"
             self.plucks.append((f, ok))
             if ok:
-                self.freq.set_markup(self._big(f"{f:.1f} Hz", self._color(f)))
+                word = "OK" if abs(f - TARGET) <= TOLERANCE else ("tighten" if f < TARGET else "loosen")
+                self.freq.set_markup(self._big(f"{f:.1f} Hz", self._color(f))
+                                     + f'\n<span size="large">{word}</span>')
             self._update_results()
         elif parts[0] == "LEVEL":
             pass
