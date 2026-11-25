@@ -185,7 +185,7 @@ def live(fmin, fmax, max_seconds):
             if pending is not None and len(buf) - pending >= need_after:
                 s = pending + int(0.03 * RATE)
                 f, snr = peak_freq(buf[s:s + int(0.5 * RATE)], RATE, fmin, fmax)
-                print(f"PLUCK {f:.1f} {snr:.1f} {1 if snr >= 15 else 0}", flush=True)
+                print(f"PLUCK {f:.1f} {snr:.1f} {1 if snr >= 20 else 0}", flush=True)
                 pending = None
             # keep ~1 s of history
             keep = RATE
