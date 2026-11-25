@@ -21,8 +21,8 @@ Temperatures are the maker's label values; our Orca preset is in the last column
 | 14 | Clas Ohlson Universal | PLA | Green | 1 kg | 190-220 / - | 38-7986-5, Lot 19011166277 | ? | PLA |
 | 15 | Clas Ohlson Universal | PLA | White | 1 kg | 190-220 / - | 38-7986-2, B/N 21051216573 | ? | PLA |
 | 16 | Unbranded "Flexible filament-07" | TPU (hardness unknown) | Black | 0.8 kg | - | SKU 741000059-0, made 2019-03-25 | box | TPU 95A |
-| 17 | Unbranded "PA (Nylon) filament" | PA | Black | 1 kg | handwritten "250-27x" | SKU 741000045-0, made 2019-01-15 | box | PA Nylon |
-| 18 | Frontierfila | POM | Natural? | 1 kg | 210-270 (start 250) / 80-100 | - | vacuum bag + humidity card | POM |
+| 17 | Unbranded "PA (Nylon) filament" | PA | Black | 1 kg | handwritten "250-275" (unknown author, not a maker value) | SKU 741000045-0, made 2019-01-15 | box | PA Nylon |
+| 18 | Frontierfila | POM | White | 1 kg | 210-270 (start 250) / 80-100 | - | vacuum bag + humidity card | POM |
 | 19 | Clas Ohlson Universal | PLA | Black | 1 kg | 190-220 / - | 38-7986-1, Lot 20061197165 | ? (part used) | PLA |
 | 20 | PrimaSelect | ABS | Red | 1 kg | 220-250 / 80-100 | PS-ABS-175-1000-RD | ~1/4 (separate spool) | ABS |
 | 21 | R3D Filament | ABS | Black | 1 kg | 220-260 / - | - | ? - **loaded in the printer** (2026-11-25) | ABS |
