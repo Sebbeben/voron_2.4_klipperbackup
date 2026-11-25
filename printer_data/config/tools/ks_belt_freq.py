@@ -35,6 +35,7 @@ class Panel(ScreenPanel):
         self.fan_restore = []
 
         self.freq = Gtk.Label(hexpand=True)
+        self.freq.set_justify(Gtk.Justification.CENTER)
         self.freq.set_markup(self._big("---"))
         self.info = Gtk.Label(label=f"Target {TARGET:.0f} Hz (150 mm span). Press Start, pluck the belt.",
                               hexpand=True, wrap=True)
@@ -122,6 +123,7 @@ class Panel(ScreenPanel):
 
     def clear(self, widget):
         self.plucks = []
+        self.freq.set_justify(Gtk.Justification.CENTER)
         self.freq.set_markup(self._big("---"))
         self._update_results()
 
