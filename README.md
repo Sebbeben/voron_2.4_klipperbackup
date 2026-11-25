@@ -29,6 +29,7 @@ Klipper configuration backup for my Voron 2.4 350 (pushed automatically by [Klip
 - [Nevermore Duo](https://github.com/nevermore3d) under the bed (M3 T-nuts in the bed extrusion), 2 blowers in parallel on Spider FAN0 (`PB0`) as `[fan_generic nevermore]`. On in `PRINT_START` when bed > 90 C, off 10 min after `PRINT_END`
 - ADXL345 accelerometer (loose, mounted on the toolhead only for calibration) wired to the Pi SPI0 bus, **CS on CE1 = pin 26 / GPIO7** (CE0 = pin 24 belongs to the MCP2515 CAN HAT - CS there kills CAN). Pi runs `klipper-mcu` as `[mcu rpi]`, `[adxl345] spi_bus: spidev0.1`, `axes_map: -z,-y,-x`
 - Chamber air: 3 x NTC 100K (temporary test positions, Spider TE0/TE1/TE2 = PC0/PC1/PC2), `chamber_sensors.cfg`. Z `position_max` temporarily 200 while they hang under the top panel (restore 340)
+- Gantry NTC (2026-11-25): a 4th NTC 100K pulled through the Z drag chain together with the new A/B motor cables, **not connected yet**. Plan: chamber air sensor on top of the gantry extrusion (moves with Z, so it reads the air at the gantry, which is what drives QGL/gantry drift). All Spider thermistor inputs are taken (PC0/PC1/PC2 chamber, PC3 bed), so it replaces one of the test sensors (`chamber_side` PC1 is the obvious one). Mounting: middle of the gantry, >= 100 mm from the A/B motors (they warm the aluminium), bead 10-20 mm above the extrusion in free air, not touching metal (printed standoff), outside the part-fan / Nevermore airflow. Expect it to read high at low Z (bed radiation) - only trust it for heatsoak at print height
 - [OMRON G3NB-225B-1 25A SSR](https://www.omron-ap.com/products/family/3232/download/catalog.html)
 
 ### Fans
@@ -182,6 +183,7 @@ Plan:
 - [x] Check the X rail is **MGN12H** (required for CNC Tap V2)
 - [x] Clean and grease all linear rails, check belts and printed parts for cracks
 - [x] Clean the Orbiter drive gears
+- [ ] Gantry NTC (already in the Z drag chain): printed standoff on the gantry extrusion, connect to Spider T1 `PC1` in place of `chamber_side`, rename the sensor `chamber_gantry` in `chamber_sensors.cfg`, compare with `chamber_air` during a heatsoak
 - [ ] Chamber NTCs: fit 3 x NTC 100K temporarily (PC0 rear mid, PC1 side mid, PC2 top), compare during a heatsoak, keep the best as `chamber_air` - see `chamber_sensors.cfg`. Check gantry clearance, cable length to the electronics bay
 - [x] Hotend fan fitted 2026-11-17 (tach not wired yet)
 - [ ] Part fan 5015 (see `fan_upgrade.cfg`)
