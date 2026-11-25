@@ -26,7 +26,7 @@ Temperatures are the maker's label values; our Orca preset is in the last column
 | 19 | Clas Ohlson Universal | PLA | Black | 1 kg | 190-220 / - | 38-7986-1, Lot 20061197165 | ? (part used) | PLA |
 | 20 | PrimaSelect | ABS | Red | 1 kg | 220-250 / 80-100 | PS-ABS-175-1000-RD | ~1/4 (separate spool) | ABS |
 | 21 | R3D Filament | ABS | Black | 1 kg | 220-260 / - | - | ? - **loaded in the printer** (2026-11-25) | ABS |
-| 22 | ? (not photographed) | PLA | Transparent | ? | ? | ? | ? | PLA |
+| 22 | ScapeFill (scape.se)? - from memory, not photographed | PLA | Transparent | 1 kg? | ? | ? | ? | PLA |
 
 ## Purchases
 | Date | Shop | Item | Qty | Price incl. VAT | Per kg |
