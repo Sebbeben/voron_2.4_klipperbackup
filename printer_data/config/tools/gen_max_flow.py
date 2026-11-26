@@ -2,7 +2,8 @@
 """Max volumetric flow test: a single-wall spiral (vase) cylinder whose flow rises
 in steps with height. Look for the height where the wall turns matte/rough, gets
 gaps or the extruder clicks; the step table at the top of the gcode (and printed
-by this script) converts height to mm3/s. Use ~80 % of the last good value as
+by this script) converts height to mm3/s. Steps are 2 layers each, separated by a small ridge; count steps from the base.
+Use ~80 % of the last good value as
 `filament_max_volumetric_speed` in Orca.
 
 Placed automatically on a free bed spot (calib_common.find_spot), own start/purge,
@@ -17,10 +18,10 @@ import calib_common as cc
 
 p = argparse.ArgumentParser()
 p.add_argument("out")
-p.add_argument("--start", type=float, default=10.0)
+p.add_argument("--start", type=float, default=12.0)
 p.add_argument("--end", type=float, default=40.0)
-p.add_argument("--step", type=float, default=2.0)
-p.add_argument("--step-height", type=float, default=2.0)
+p.add_argument("--step", type=float, default=4.0)
+p.add_argument("--step-height", type=float, default=0.6, help="2 layers per flow step")
 p.add_argument("--temp", type=int, default=250)
 p.add_argument("--first-temp", type=int, default=255)
 p.add_argument("--bed", type=int, default=105)
@@ -48,6 +49,8 @@ while q <= a.end + 1e-9:
 
 base_top = H1 + (BASE_LAYERS - 1) * H
 total_h = base_top + len(steps) * a.step_height
+if total_h > cc.MAX_REMOTE_HEIGHT:
+    sys.exit(f"test is {total_h:.1f} mm tall - over {cc.MAX_REMOTE_HEIGHT} mm the toolhead hits it during the next QGL (Z10 travel)")
 foot = a.diameter + 2 * (BRIM * 0.45 + 1)
 PURGE_DY = 6.0
 fx, fy = cc.find_spot(foot, foot + PURGE_DY)
@@ -116,7 +119,9 @@ while z < total_h:
     if qv != last_q:
         w(f"; flow {qv} mm3/s from z={z:.2f}" if qv else "; base layers")
         last_q = qv
-    x, y = pt(R, k)
+    # first revolution of each flow step slightly outside -> a visible ridge between steps
+    rr = R + 0.2 if qv and (z - base_top) % a.step_height < H else R
+    x, y = pt(rr, k)
     w(f"G1 X{x:.3f} Y{y:.3f} Z{z:.4f} E{sl * emm:.5f} F{v * 60:.0f}")
 
 w("EXCLUDE_OBJECT_END NAME=max_flow")

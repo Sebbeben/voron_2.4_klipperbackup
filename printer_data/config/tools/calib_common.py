@@ -13,6 +13,9 @@ import json, math, os, time
 BED_X, BED_Y = 350.0, 350.0
 LAYOUT_FILE = os.path.expanduser("~/printer_data/config/tools/bed_layout.json")
 FIL_AREA = math.pi * (1.75 / 2) ** 2
+# QGL travels between probe points at horizontal_move_z 10 - the toolhead/duct passes over
+# most of the bed, so remote tests must stay well below that.
+MAX_REMOTE_HEIGHT = 6.0
 
 # Keep-out rectangles (x0, y0, x1, y1)
 KEEP_OUT = [
