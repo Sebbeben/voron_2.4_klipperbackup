@@ -99,7 +99,7 @@ def ab_sketch(which, w=260, h=290, mic=True):
 def z_sketch(slot, w=260, h=290, mic=True):
     """Side view of one Z drive + mini top view with the corner. slot: 'Z0'..'Z3' or None (setup)."""
     b = []
-    bx, iy = 84, h - 46                 # strand x (fixed side), Z idler centre y
+    bx, iy = 104, h - 46                # strand x (fixed side), Z idler centre y
     gy = iy - 150                       # gantry clamp at 150 mm (schematic)
     # Z drive unit
     b.append(f'<rect x="{bx - 30}" y="{iy - 16}" width="92" height="40" rx="4" fill="#2b3338" stroke="{FRAME}"/>')
