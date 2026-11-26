@@ -10,16 +10,6 @@
   "time": "2026-11-26 15:38"
  },
  {
-  "name": "pa_lines_r3d_abs.gcode (may still be on the bed)",
-  "rect": [
-   113,
-   116,
-   222,
-   204
-  ],
-  "time": "2026-11-26 16:18"
- },
- {
   "name": "max_flow_r3d_abs.gcode",
   "rect": [
    240.0,
