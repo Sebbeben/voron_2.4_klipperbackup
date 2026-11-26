@@ -71,7 +71,7 @@ for z0, z1, qv, v in table:
     w(f";  {z0:5.1f}-{z1:5.1f}     {qv:5.1f}          {v:5.0f}{'  (capped by max_velocity)' if qv / area > MAX_V else ''}")
 w(f"EXCLUDE_OBJECT_DEFINE NAME=max_flow CENTER={cx:.2f},{cy:.2f} "
   f"POLYGON=[[{cx-R:.2f},{cy-R:.2f}],[{cx+R:.2f},{cy-R:.2f}],[{cx+R:.2f},{cy+R:.2f}],[{cx-R:.2f},{cy+R:.2f}]]")
-w(cc.start_gcode(a.first_bed, a.first_temp, cx - 30, fy + 1.0, obj_xy=(cx, cy)))
+w(cc.start_gcode(a.first_bed, a.first_temp, fx + 2, fy + 1.0, foot - 10, obj_xy=(cx, cy)))  # purge + wipe inside the footprint
 w("EXCLUDE_OBJECT_START NAME=max_flow")
 
 def pt(r, k):

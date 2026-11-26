@@ -371,13 +371,19 @@ class Panel(ScreenPanel):
             # Move Y away and back so the belts redistribute tension, exactly like after a print
             y_away = y + 100 if y < 200 else y - 100
             self._screen._ws.klippy.gcode_script(
-                f"{home}G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nG1 X{x} Y{y} F6000\nM400")
+                f"{home}{self._safe_z()}G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nG1 X{x} Y{y} F6000\nM400")
         # after a move: do not listen yet - motor noise would be taken as plucks
         self.open_belt(None, AB[0], autostart=not move)
         if move:
             self.bt_info.set_markup(mk("Gantry moves away and back - when it has stopped, press Start and pluck.", color=ORANGE))
 
     # ---------- position ----------
+    def _safe_z(self):
+        """Raise Z to 10 mm before XY moves if it is homed and lower (test prints on the bed)."""
+        th = self._printer.get_stat("toolhead") or {}
+        pos = th.get("position") or [0, 0, 99]
+        return "G90\nG1 Z10 F600\n" if "z" in (th.get("homed_axes") or "") and pos[2] < 10 else ""
+
     def _xy_homed(self):
         homed = self._printer.get_stat("toolhead", "homed_axes") or ""
         return "x" in homed and "y" in homed
@@ -411,7 +417,7 @@ class Panel(ScreenPanel):
         """Move the toolhead to the saved measuring position (homes X/Y first if needed; Z is not moved)."""
         x, y = load_pos()
         script = "" if self._xy_homed() else "G28 X Y\n"
-        self._screen._ws.klippy.gcode_script(f"{script}G90\nG1 X{x} Y{y} F6000")
+        self._screen._ws.klippy.gcode_script(f"{script}{self._safe_z()}G90\nG1 X{x} Y{y} F6000")
         msg = f"Moving to X{x:.0f} Y{y:.0f} - motors stay on (belts held) until the idle timeout."
         if self.stack.get_visible_child_name() == "setup":
             self.su_info.set_text(msg)
