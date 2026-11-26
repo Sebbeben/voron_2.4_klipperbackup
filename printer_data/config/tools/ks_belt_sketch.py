@@ -87,7 +87,7 @@ def ab_sketch(which, w=260, h=290, mic=True):
         if not both:
             b.append(_pluck(x, (jy + F) / 2, s))           # pluck in the middle of the span
             if mic:
-                b.append(_mic(x + s * 22, (jy + F) / 2 - 34, s))  # movable mic: next to mid-span
+                b.append(_mic(x + s * 44, (jy + F) / 2 - 34, s))  # movable mic: next to mid-span
     b.append(f'<text x="{w / 2}" y="{h - 6}" fill="{GREY}" font-size="14" text-anchor="middle">FRONT</text>')
     b.append(f'<text x="{L}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>'
              f'<text x="{R}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>')
