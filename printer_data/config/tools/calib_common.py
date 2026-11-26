@@ -79,9 +79,10 @@ def record(rect, name):
     json.dump(lay, open(LAYOUT_FILE, "w"), indent=1)
 
 
-def start_gcode(bed, temp, purge_x0, purge_y, purge_len=60.0):
+def start_gcode(bed, temp, purge_x0, purge_y, purge_len=60.0, obj_xy=None):
     """Home, QGL, Z home, adaptive mesh (KAMP, objects must be defined before), purge.
     Does not use PRINT_START (its fixed prime line would print on top of earlier ones)."""
+    ox, oy = obj_xy if obj_xy else (purge_x0, purge_y + 10)
     return f"""M140 S{bed}
 M104 S150                       ; warm, non-oozing nozzle for Tap
 SET_IDLE_TIMEOUT TIMEOUT=10800
@@ -92,6 +93,8 @@ M190 S{bed}
 BED_MESH_CLEAR
 QUAD_GANTRY_LEVEL
 G28 Z
+G1 Z10 F600                     ; bed_mesh travels at horizontal_move_z 2 -
+G1 X{ox:.1f} Y{oy:.1f} F12000   ; start it over this test's own (empty) area
 BED_MESH_CALIBRATE              ; adaptive via KAMP (objects above)
 G1 Z10 F600                     ; clear earlier test prints (max 6 mm) during the travel
 G1 X{purge_x0:.1f} Y{purge_y:.1f} F12000

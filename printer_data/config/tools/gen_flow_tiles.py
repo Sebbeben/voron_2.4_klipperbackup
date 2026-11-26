@@ -70,7 +70,7 @@ for f, x0, y0 in tiles:
 mx0, my0 = gx - MARK - 3, gy
 w(f"EXCLUDE_OBJECT_DEFINE NAME=marker CENTER={mx0 + MARK/2:.2f},{my0 + MARK/2:.2f} "
   f"POLYGON=[[{mx0:.2f},{my0:.2f}],[{mx0+MARK:.2f},{my0:.2f}],[{mx0+MARK:.2f},{my0+MARK:.2f}],[{mx0:.2f},{my0+MARK:.2f}]]")
-w(cc.start_gcode(a.first_bed, a.first_temp, gx, fy + 1.0, min(60.0, grid_w)))
+w(cc.start_gcode(a.first_bed, a.first_temp, gx, fy + 1.0, min(60.0, grid_w), obj_xy=(gx + grid_w / 2, gy + grid_h / 2)))
 
 state = {"x": None, "y": None}
 
