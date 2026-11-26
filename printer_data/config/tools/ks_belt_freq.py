@@ -265,7 +265,7 @@ class Panel(ScreenPanel):
         self.bt_hist.set_markup("  ".join(f"{f:.1f}" if ok else mk(f"{f:.1f}?", color=GREY) for f, ok in last))
 
     # ---------- belt view ----------
-    def open_belt(self, widget, slot):
+    def open_belt(self, widget, slot, autostart=True):
         self.current = slot
         self.plucks = []
         rnd = f"   round {self.round}" if self.guided else ""
@@ -278,7 +278,7 @@ class Panel(ScreenPanel):
         self.bt_info.set_text("")
         self._update_belt()
         self.stack.set_visible_child_name("belt")
-        if not self.proc:
+        if autostart and not self.proc:
             self.start()
 
     def leave_belt(self, widget=None):
@@ -367,9 +367,10 @@ class Panel(ScreenPanel):
             y_away = y + 100 if y < 200 else y - 100
             self._screen._ws.klippy.gcode_script(
                 f"G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nG1 X{x} Y{y} F6000\nM400")
-        self.open_belt(None, AB[0])
+        # after a move: do not listen yet - motor noise would be taken as plucks
+        self.open_belt(None, AB[0], autostart=not move)
         if move:
-            self.bt_info.set_markup(mk("Gantry moved away and back - wait until it stops, then pluck.", color=GREY))
+            self.bt_info.set_markup(mk("Gantry moves away and back - when it has stopped, press Start and pluck.", color=ORANGE))
 
     # ---------- position ----------
     def _xy_homed(self):
