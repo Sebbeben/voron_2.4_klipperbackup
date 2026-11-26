@@ -43,6 +43,9 @@ SPAN = 150.0
 # V2.4 size. Measured on this V2.4 350 with a ruler 2026-11-26: 150 mm at Y105 -> 45 mm.
 DEFAULT_SPAN_OFFSET = 45.0
 DEFAULT_POS = (175.0, SPAN - DEFAULT_SPAN_OFFSET)
+# Z belts: gantry height for measuring (Z span grows with Z as well). Default until set on the
+# panel with a ruler - "Save Z" stores it in POS_FILE.
+DEFAULT_Z = 60.0
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
 
@@ -53,6 +56,26 @@ def load_pos():
         return float(d["x"]), float(d["y"])
     except (OSError, ValueError, KeyError):
         return DEFAULT_POS
+
+
+def load_z():
+    """(z, calibrated)"""
+    try:
+        with open(POS_FILE) as f:
+            return float(json.load(f)["z"]), True
+    except (OSError, ValueError, KeyError, TypeError):
+        return DEFAULT_Z, False
+
+
+def save_pos_file(**kw):
+    try:
+        with open(POS_FILE) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        d = {}
+    d.update(kw)
+    with open(POS_FILE, "w") as f:
+        json.dump(d, f)
 
 
 def load_offset():
@@ -199,11 +222,15 @@ class Panel(ScreenPanel):
             "<b>150 mm</b> from the front idler centres (ruler), then <b>Save pos</b>.")
         jog = Gtk.Grid(column_homogeneous=True, column_spacing=6, row_spacing=6)
         for i, d in enumerate((-10, -1, 1, 10)):
-            jog.attach(self._btn(f"Y{d:+d}", "color3", self.jog_y, d), i, 0, 1, 1)
+            jog.attach(self._btn(f"Y{d:+d}", "color3", self.jog, "Y", d), i, 0, 1, 1)
+        for i, d in enumerate((-10, -1, 1, 10)):
+            jog.attach(self._btn(f"Z{d:+d}", "color4", self.jog, "Z", d), i, 1, 1, 1)
         bottom = Gtk.Grid(column_homogeneous=True, column_spacing=6)
-        bottom.attach(self._btn("Measure pos", "color2", self.goto_measure_pos), 0, 0, 1, 1)
-        bottom.attach(self._btn("Save pos", "color1", self.save_measure_pos), 1, 0, 1, 1)
-        bottom.attach(self._btn("Back", "color4", self.show_view, "overview"), 2, 0, 1, 1)
+        bottom.attach(self._btn("Go Y pos", "color2", self.goto_measure_pos), 0, 0, 1, 1)
+        bottom.attach(self._btn("Save Y", "color1", self.save_measure_pos), 1, 0, 1, 1)
+        bottom.attach(self._btn("Go Z pos", "color2", self.goto_z_pos), 2, 0, 1, 1)
+        bottom.attach(self._btn("Save Z", "color1", self.save_z_pos), 3, 0, 1, 1)
+        bottom.attach(self._btn("Back", "color4", self.show_view, "overview"), 4, 0, 1, 1)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, vexpand=True)
         box.pack_start(self.su_info, True, True, 0)
         box.pack_start(jog, False, False, 0)
@@ -216,14 +243,19 @@ class Panel(ScreenPanel):
             self._show_overview()
         else:
             if name == "setup":
-                x, y = load_pos()
-                off = load_offset()
-                self.su_info.set_markup(
-                    f"Saved: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm   (span = Y + {off:.0f})\n"
-                    f"<b>{SPAN:.0f} mm</b> span is at <b>Y{SPAN - off:.0f}</b> - press Measure pos.\n"
-                    "To re-calibrate: jog until a ruler shows 150 mm between the front idler centres and "
-                    "the X/Y-joint idler centres, then <b>Save pos</b>.")
+                self._setup_text()
             self.stack.set_visible_child_name(name)
+
+    def _setup_text(self, extra=""):
+        x, y = load_pos()
+        off = load_offset()
+        z, cal = load_z()
+        self.su_info.set_markup(
+            (extra + "\n" if extra else "")
+            + f"A/B: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm (span = Y + {off:.0f}).  "
+            f"Z belts: <b>Z{z:.0f}</b>{'' if cal else ' (default)'}\n"
+            "The panel moves there automatically when you open a belt.\n"
+            f"To change: jog until a ruler shows {SPAN:.0f} mm, then <b>Save Y</b> / <b>Save Z</b>.")
 
     def _show_overview(self, info=None):
         for k in SLOTS:
@@ -298,7 +330,7 @@ class Panel(ScreenPanel):
         self._update_belt()
         self.stack.set_visible_child_name("belt")
         if autostart and not self.proc:
-            self.start()
+            self._goto_for(slot, self.start)
 
     def leave_belt(self, widget=None):
         if self.proc:
@@ -382,19 +414,53 @@ class Panel(ScreenPanel):
     def next_round(self, widget, move):
         self.round += 1
         self.moved = move
-        if move:
-            x, y = load_pos()
-            home = "" if self._xy_homed() else "G28 X Y\n"
-            # Move Y away and back so the belts redistribute tension, exactly like after a print
-            y_away = y + 100 if y < 200 else y - 100
-            self._screen._ws.klippy.gcode_script(
-                f"{home}{self._safe_z()}G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nG1 X{x} Y{y} F6000\nM400")
-        # after a move: do not listen yet - motor noise would be taken as plucks
-        self.open_belt(None, AB[0], autostart=not move)
-        if move:
-            self.bt_info.set_markup(mk("Gantry moves away and back - when it has stopped, press Start and pluck.", color=ORANGE))
+        if not move:
+            self.open_belt(None, AB[0])
+            return
+        x, y = load_pos()
+        home = "" if self._xy_homed() else "G28 X Y\n"
+        # Move Y/X away so the belts redistribute tension, exactly like after a print; open_belt
+        # then moves back to the measuring position and only starts listening once it stands still.
+        y_away = y + 100 if y < 200 else y - 100
+        self.open_belt(None, AB[0], autostart=False)
+        self.bt_info.set_markup(mk("Moving the gantry away and back - wait...", color=ORANGE))
+        self._screen._ws.klippy.gcode_script(
+            f"{home}{self._safe_z()}G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nM400",
+            self._moved, lambda: self._goto_for(AB[0], self.start))
 
     # ---------- position ----------
+    def _goto_for(self, slot, after=None):
+        """Move to the measuring position of this belt (A/B: X/Y, Z belts: gantry height), then
+        call `after` once the move has finished (gcode M400 -> Moonraker replies afterwards).
+        Listening only starts then, so motor noise is never taken as a pluck."""
+        th = self._printer.get_stat("toolhead") or {}
+        homed = th.get("homed_axes") or ""
+        pos = th.get("position") or [None, None, None]
+        if slot in AB:
+            x, y = load_pos()
+            if "x" in homed and "y" in homed and pos[0] is not None and \
+                    abs(pos[0] - x) < 0.5 and abs(pos[1] - y) < 0.5:
+                return after() if after else None
+            script = ("" if "x" in homed and "y" in homed else "G28 X Y\n") + self._safe_z() + \
+                f"G90\nG1 X{x} Y{y} F6000\nM400"
+            where = f"X{x:.0f} Y{y:.0f} (span {y + load_offset():.0f} mm)"
+        else:
+            z, cal = load_z()
+            if all(a in homed for a in "xyz") and pos[2] is not None and abs(pos[2] - z) < 0.5:
+                return after() if after else None
+            script = ("" if all(a in homed for a in "xyz") else "G28\n") + f"G90\nG1 Z{z} F900\nM400"
+            where = f"Z{z:.0f}" + ("" if cal else " (default - set it under Setup pos)")
+        self.bt_info.set_markup(mk(f"Moving to {where} - listening starts when it stops", color=ORANGE))
+        self._screen._ws.klippy.gcode_script(script, self._moved, after)
+
+    def _moved(self, result, method, params, after=None):
+        if isinstance(result, dict) and "error" in result:
+            msg = str(result["error"].get("message", result["error"]) if isinstance(result["error"], dict) else result["error"])
+            self.bt_info.set_markup(mk(f"Move failed: {msg[:90]}", color=ORANGE))
+            return
+        if after and self.stack.get_visible_child_name() == "belt":
+            after()
+
     def _safe_z(self):
         """Raise Z to 10 mm before XY moves if it is homed and lower (test prints on the bed)."""
         th = self._printer.get_stat("toolhead") or {}
@@ -405,16 +471,22 @@ class Panel(ScreenPanel):
         homed = self._printer.get_stat("toolhead", "homed_axes") or ""
         return "x" in homed and "y" in homed
 
-    def jog_y(self, widget, d):
-        """Move Y in small steps to set up the 150 mm span (needs X/Y homed; Z is not moved)."""
-        if not self._xy_homed():
-            self.su_info.set_markup(mk("Home X/Y first (press Measure pos).", color=ORANGE))
+    def jog(self, widget, axis, d):
+        """Small Y or Z steps to set up the measuring position (axis must be homed)."""
+        homed = self._printer.get_stat("toolhead", "homed_axes") or ""
+        if axis.lower() not in homed:
+            self._setup_text(mk(f"Home {axis} first (Go {axis} pos homes it).", color=ORANGE))
             return
-        self._screen._ws.klippy.gcode_script(f"G91\nG1 Y{d} F3000\nG90")
-        pos = self._printer.get_stat("toolhead", "position") or [0, 0]
-        y = pos[1] + d
-        self.su_info.set_markup(f"Y about <b>{y:.0f}</b> = span about <b>{y + load_offset():.0f} mm</b>.\n"
-                                f"If a ruler shows exactly {SPAN:.0f} mm here, press <b>Save pos</b>.")
+        f = 3000 if axis == "Y" else 600
+        self._screen._ws.klippy.gcode_script(f"G91\nG1 {axis}{d} F{f}\nG90")
+        pos = self._printer.get_stat("toolhead", "position") or [0, 0, 0]
+        v = pos[1 if axis == "Y" else 2] + d
+        if axis == "Y":
+            self.su_info.set_markup(f"Y about <b>{v:.0f}</b> = span about <b>{v + load_offset():.0f} mm</b>.\n"
+                                    f"If a ruler shows exactly {SPAN:.0f} mm here, press <b>Save Y</b>.")
+        else:
+            self.su_info.set_markup(f"Z about <b>{v:.0f}</b>.\nWhen the Z belt span is {SPAN:.0f} mm "
+                                    f"(ruler, from the Z idler on the fixed side), press <b>Save Z</b>.")
 
     def save_measure_pos(self, widget):
         if not self._xy_homed():
@@ -425,14 +497,30 @@ class Panel(ScreenPanel):
             self.su_info.set_text("Toolhead position unknown.")
             return
         try:
-            with open(POS_FILE, "w") as f:
-                # Save pos means "the ruler shows SPAN here" -> also re-derive the offset
-                json.dump({"x": round(pos[0], 1), "y": round(pos[1], 1),
-                           "span_offset": round(SPAN - pos[1], 1)}, f)
-            self.su_info.set_markup(f"Saved: <b>X{pos[0]:.1f} Y{pos[1]:.1f}</b> = {SPAN:.0f} mm span "
-                                    f"(span = Y + {SPAN - pos[1]:.0f})")
+            # Save Y means "the ruler shows SPAN here" -> also re-derive the offset
+            save_pos_file(x=round(pos[0], 1), y=round(pos[1], 1), span_offset=round(SPAN - pos[1], 1))
+            self._setup_text(f"Saved Y: <b>X{pos[0]:.1f} Y{pos[1]:.1f}</b> = {SPAN:.0f} mm span")
         except OSError as e:
             self.su_info.set_text(f"Could not save: {e}")
+
+    def save_z_pos(self, widget):
+        homed = self._printer.get_stat("toolhead", "homed_axes") or ""
+        pos = self._printer.get_stat("toolhead", "position") or None
+        if "z" not in homed or not pos:
+            self._setup_text(mk("Home Z first (Go Z pos homes it).", color=ORANGE))
+            return
+        try:
+            save_pos_file(z=round(pos[2], 1))
+            self._setup_text(f"Saved Z: <b>Z{pos[2]:.1f}</b>")
+        except OSError as e:
+            self.su_info.set_text(f"Could not save: {e}")
+
+    def goto_z_pos(self, widget):
+        z, _ = load_z()
+        homed = self._printer.get_stat("toolhead", "homed_axes") or ""
+        script = "" if all(a in homed for a in "xyz") else "G28\n"
+        self._screen._ws.klippy.gcode_script(f"{script}G90\nG1 Z{z} F900")
+        self._setup_text(f"Moving to Z{z:.0f}")
 
     def goto_measure_pos(self, widget):
         """Move the toolhead to the saved measuring position (homes X/Y first if needed; Z is not moved)."""
