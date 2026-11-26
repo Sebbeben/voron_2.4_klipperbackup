@@ -55,6 +55,14 @@ DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X ax
 # centres, ~140 Hz, all four equal. That height is not known until measured once with a ruler and
 # stored with "Save Z" - until then the panel does not move Z (DEFAULT_Z is only a jog start value).
 DEFAULT_Z = 60.0
+# Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
+# under 20 dB are not used. LEVEL is the background level in dBFS.
+SNR_OK, SNR_GOOD = 20.0, 30.0
+NOISY_DBFS = -40.0
+MIC_TIP = {   # where the microphone should be, per source
+    "camera": "Mic: USB camera (fixed) - pluck firmly, same spot each time",
+    "sensor": "Mic: belt sensor - clip it 1-2 cm from the belt at mid-span",
+}
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
 
@@ -121,6 +129,9 @@ class Panel(ScreenPanel):
         self.saved = {k: None for k in SLOTS}
         self.fan_restore = []
         self.last_msg = ""         # last non-protocol line from belt_freq.py (errors)
+        self.level = None          # background level (dBFS) while listening
+        self.snrs = []             # SNR of the plucks on this belt
+        self.mic = "camera"        # "sensor" once the belt sensor board is the audio source
         self.current = None        # belt shown in the belt view
         self.guided = False
         self.round = 0
@@ -204,6 +215,7 @@ class Panel(ScreenPanel):
         self.bt_freq = self._label(False)
         self.bt_median = self._label()
         self.bt_hist = self._label()
+        self.bt_sig = self._label()
         self.bt_info = self._label()
         self.bt_start = self._btn("Stop", "color3", self.toggle)
         self.bt_save = self._btn("Save", "color1", self.save_current)
@@ -217,6 +229,7 @@ class Panel(ScreenPanel):
         right.pack_start(self.bt_freq, True, True, 0)
         right.pack_start(self.bt_median, False, False, 0)
         right.pack_start(self.bt_hist, False, False, 0)
+        right.pack_start(self.bt_sig, False, False, 0)
         mid = Gtk.Box(spacing=8, vexpand=True)
         mid.pack_start(self.bt_sketch, False, False, 0)
         mid.pack_start(right, True, True, 0)
@@ -347,14 +360,39 @@ class Panel(ScreenPanel):
                 f'Median <b><span foreground="{col}">{m:.1f} Hz  {word}</span></b>   '
                 f'{m - target_of(k):+.1f} Hz vs target   ({len(good)} plucks)')
         else:
-            self.bt_median.set_markup(mk("Pluck the belt in the middle of the span, ~1 s apart", color=GREY))
+            self.bt_median.set_markup(mk("Pluck the belt where the arrow points, ~1 s apart", color=GREY))
         last = self.plucks[-8:]
         self.bt_hist.set_markup("  ".join(f"{f:.1f}" if ok else mk(f"{f:.1f}?", color=GREY) for f, ok in last))
+        self._update_signal()
+
+    def _update_signal(self):
+        """Signal bar for the last pluck + background noise + what to do about it."""
+        parts = []
+        if self.snrs:
+            snr = self.snrs[-1]
+            n = 1 if snr < SNR_OK else (2 if snr < SNR_GOOD else (3 if snr < SNR_GOOD + 10 else 4))
+            col = ORANGE if snr < SNR_OK else GREEN
+            word = "weak - not used" if snr < SNR_OK else ("ok" if snr < SNR_GOOD else "good")
+            parts.append(f'Signal <span foreground="{col}"><b>{"\u25ae" * n}{"\u25af" * (4 - n)} {word}</b></span>')
+        if self.level is not None:
+            noisy = self.level > NOISY_DBFS
+            parts.append(mk(f"noise {self.level:.0f} dBFS", color=ORANGE if noisy else GREY))
+        tip = ""
+        weak = sum(1 for v in self.snrs[-3:] if v < SNR_OK)
+        if self.level is not None and self.level > NOISY_DBFS:
+            tip = "Noisy - stop fans/pumps nearby, close the door"
+        elif weak >= 2:
+            tip = "Weak plucks - pluck firmer, in the middle of the span"
+        else:
+            tip = MIC_TIP["sensor" if self.mic == "sensor" else "camera"]
+        self.bt_sig.set_markup("   ".join(parts) + ("\n" if parts else "") + mk(tip, "small", GREY))
 
     # ---------- belt view ----------
     def open_belt(self, widget, slot, autostart=True):
         self.current = slot
         self.plucks = []
+        self.snrs = []
+        self.level = None
         rnd = f"   round {self.round}" if self.guided else ""
         prev = self.saved[slot]
         prev_txt = f"   last {prev:.1f} Hz" if prev else ""
@@ -623,6 +661,7 @@ class Panel(ScreenPanel):
 
     def clear(self, widget):
         self.plucks = []
+        self.snrs = []
         self.bt_freq.set_markup(mk("---", "60000", GREY, True))
         self._update_belt()
 
@@ -693,11 +732,20 @@ class Panel(ScreenPanel):
         if parts[0] == "PLUCK" and len(parts) == 4:
             f, ok = float(parts[1]), parts[3] == "1"
             self.plucks.append((f, ok))
+            self.snrs.append(float(parts[2]))
             if ok:
                 word, col = self._word(f, self.current)
                 self.bt_freq.set_markup(mk(f"{f:.1f} Hz", "60000", col, True) + "\n" + mk(word, "xx-large", col, True))
             self._update_belt()
-        elif parts[0] in ("LEVEL", "END"):
+        elif parts[0] == "LEVEL" and len(parts) == 2:
+            try:
+                self.level = float(parts[1])
+            except ValueError:
+                return
+            self._level_n = getattr(self, "_level_n", 0) + 1
+            if self._level_n % 5 == 0:          # LEVEL comes every 0.2 s - refresh once a second
+                self._update_signal()
+        elif parts[0] == "END":
             pass
         elif parts[0] == "SOURCE":
             if parts[1] == "go2rtc":
