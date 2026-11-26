@@ -254,8 +254,9 @@ class Panel(ScreenPanel):
         z, cal = load_z()
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
-            + f"A/B: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm (span = Y + {off:.0f}).  "
-            + (f"Z belts: <b>Z{z:.0f}</b>\n" if cal else "Z belts: <b>not set</b> - measure once\n")
+            + f"A/B: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm (span = Y + {off:.0f})\n"
+            + (f"Z belts: <b>Z{z:.0f}</b>\n" if cal else
+               "Z belts: <b>not set</b> - jog Z until the fixed side is 150 mm from the Z idler centres\n")
             + "The panel moves there automatically when you open a belt.\n"
             + f"To change: jog until a ruler shows {SPAN:.0f} mm, then <b>Save Y</b> / <b>Save Z</b>.")
 
@@ -591,6 +592,12 @@ class Panel(ScreenPanel):
         self.bt_freq.set_markup(mk("---", "60000", GREY, True))
         self._update_belt()
 
+    def _z_note(self):
+        """Reminder shown while measuring a Z belt without a saved measuring height."""
+        if self.current and self.current.startswith("Z") and not load_z()[1]:
+            return " - Z height not set (Setup pos -> Save Z)"
+        return ""
+
     def start(self):
         warm = self._fans_off()
         try:
@@ -605,7 +612,9 @@ class Panel(ScreenPanel):
         self.watch = GLib.io_add_watch(self.proc.stdout, GLib.PRIORITY_DEFAULT,
                                        GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self._on_output)
         self.bt_start.set_label("Stop")
-        self.bt_info.set_markup(mk("Listening" + (" - heater fans running (noisy)" if warm else ""), color=GREY))
+        note = self._z_note()
+        self.bt_info.set_markup(mk("Listening" + (" - heater fans running (noisy)" if warm else "") + note,
+                                   color=ORANGE if note else GREY))
 
     def stop(self):
         if self.proc and self.proc.poll() is None:
@@ -658,7 +667,9 @@ class Panel(ScreenPanel):
             pass
         elif parts[0] == "SOURCE":
             if parts[1] == "go2rtc":
-                self.bt_info.set_markup(mk("Listening (mic shared with the webcam stream)", color=GREY))
+                note = self._z_note()
+                self.bt_info.set_markup(mk("Listening (mic shared with the webcam stream)" + note,
+                                           color=ORANGE if note else GREY))
         else:
             self.last_msg = line[:120]
             self.bt_info.set_text(self.last_msg)
