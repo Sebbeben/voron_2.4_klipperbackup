@@ -83,7 +83,8 @@ def record(seconds, path):
     # ALSA device busy (go2rtc is streaming the mic to a viewer): take the audio from go2rtc instead.
     print("ALSA busy (" + r.stderr.strip()[:80] + ") - recording via go2rtc RTSP instead", flush=True)
     for url in GO2RTC_AUDIO_URLS:
-        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-rtsp_transport", "tcp",
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-rtsp_transport", "tcp", "-stimeout", "5000000",  # ffmpeg 4.3: 5 s socket timeout
+              
                "-i", url, "-t", str(seconds), "-vn", "-ac", "1", "-ar", str(RATE), path]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode == 0:
@@ -148,7 +149,8 @@ def live(fmin, fmax, max_seconds):
     if len(first) < 3200:  # ALSA busy -> go2rtc
         proc.kill()
         for url in GO2RTC_AUDIO_URLS:
-            ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-i", url,
+            ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-stimeout", "5000000",  # ffmpeg 4.3: 5 s socket timeout
+               "-i", url,
                   "-vn", "-ac", "1", "-ar", str(RATE), "-f", "s16le", "-"]
             proc = subprocess.Popen(ff, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             first = proc.stdout.read(1600)

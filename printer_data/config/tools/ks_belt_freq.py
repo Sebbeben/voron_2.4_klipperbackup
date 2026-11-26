@@ -390,6 +390,7 @@ class Panel(ScreenPanel):
 
     # ---------- belt view ----------
     def open_belt(self, widget, slot, autostart=True):
+        self._view_id = getattr(self, "_view_id", 0) + 1   # a move callback only acts on its own belt view
         self.current = slot
         self.plucks = []
         self.snrs = []
@@ -507,7 +508,7 @@ class Panel(ScreenPanel):
         self.bt_info.set_markup(mk("Moving the gantry away and back - wait...", color=ORANGE))
         self._screen._ws.klippy.gcode_script(
             f"{home}{self._safe_z()}G90\nG1 X{x:.1f} Y{y_away:.1f} F6000\nG1 X{x - dx:.1f} F6000\nG1 X{x + dx:.1f} F6000\nM400",
-            self._moved, lambda: self._goto_for(AB[0], self.start))
+            self._moved, lambda: self._goto_for(AB[0], self.start), self._view_id)
 
     # ---------- position ----------
     def _limits(self, axis):
@@ -552,13 +553,15 @@ class Panel(ScreenPanel):
             script = ("" if all(a in homed for a in "xyz") else "G28\n") + f"G90\nG1 Z{z} F900\nM400"
             where = f"Z{z:.0f}"
         self.bt_info.set_markup(mk(f"Moving to {where} - listening starts when it stops", color=ORANGE))
-        self._screen._ws.klippy.gcode_script(script, self._moved, after)
+        self._screen._ws.klippy.gcode_script(script, self._moved, after, self._view_id)
 
-    def _moved(self, result, method, params, after=None):
+    def _moved(self, result, method, params, after=None, view_id=None):
         if isinstance(result, dict) and "error" in result:
             msg = str(result["error"].get("message", result["error"]) if isinstance(result["error"], dict) else result["error"])
             self.bt_info.set_markup(mk(f"Move failed: {msg[:90]}", color=ORANGE))
             return
+        if view_id is not None and view_id != getattr(self, "_view_id", None):
+            return                     # the user opened another belt (or left) while it was moving
         if after and self.stack.get_visible_child_name() == "belt":
             after()
 
