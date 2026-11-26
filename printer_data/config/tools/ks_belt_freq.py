@@ -373,7 +373,8 @@ class Panel(ScreenPanel):
             n = 1 if snr < SNR_OK else (2 if snr < SNR_GOOD else (3 if snr < SNR_GOOD + 10 else 4))
             col = ORANGE if snr < SNR_OK else GREEN
             word = "weak - not used" if snr < SNR_OK else ("ok" if snr < SNR_GOOD else "good")
-            parts.append(f'Signal <span foreground="{col}"><b>{"\u25ae" * n}{"\u25af" * (4 - n)} {word}</b></span>')
+            bars = "\u25ae" * n + "\u25af" * (4 - n)      # filled / empty blocks (no backslash in f-string, py3.9)
+            parts.append(f'Signal <span foreground="{col}"><b>{bars} {word}</b></span>')
         if self.level is not None:
             noisy = self.level > NOISY_DBFS
             parts.append(mk(f"noise {self.level:.0f} dBFS", color=ORANGE if noisy else GREY))
