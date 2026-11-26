@@ -7,7 +7,8 @@
 # Start: part fan + Nevermore off, runs tools/belt_freq.py --live and shows every pluck.
 # Stop:  ends the recording and restores the fans. A / B / Z0-Z3 store the current median so
 # the belts can be compared. Target on a V2.4: A/B ~110 Hz over a 150 mm span, A/B within 2 Hz.
-# Z belts have no official target: the four should match each other (within ~2 Hz).
+# Z belts: Voron docs start at ~140 Hz; the four should match each other (within ~2 Hz).
+import json
 import os
 import signal
 import statistics
@@ -23,9 +24,22 @@ SCRIPT = os.path.expanduser("~/printer_data/config/tools/belt_freq.py")
 TARGET = 110.0
 TOLERANCE = 5.0   # green within +-5 Hz of the target
 MATCH = 2.0       # belts of one group (A/B, Z0-Z3) within this of each other
+Z_TARGET = 140.0  # Voron docs: Z belts start at ~140 Hz (150 mm of the fixed side from the Z idler)
 SLOTS = ("B", "A", "Z0", "Z1", "Z2", "Z3")   # B first: left as seen from the front
 # Fixed toolhead position for measuring, so every measurement uses the same belt span lengths.
-MEASURE_POS = (175, 175)
+# Voron: A/B span 150 mm = X/Y-joint idler centres 150 mm from the front idler centres.
+# Set it once on the panel (jog Y, measure with a ruler, "Save pos"); stored in POS_FILE.
+POS_FILE = os.path.expanduser("~/printer_data/config/tools/belt_freq_pos.json")
+DEFAULT_POS = (175.0, 175.0)
+
+
+def load_pos():
+    try:
+        with open(POS_FILE) as f:
+            d = json.load(f)
+        return float(d["x"]), float(d["y"])
+    except (OSError, ValueError, KeyError):
+        return DEFAULT_POS
 
 
 class Panel(ScreenPanel):
@@ -55,15 +69,25 @@ class Panel(ScreenPanel):
         clear.connect("clicked", self.clear)
         goto = self._gtk.Button("move", "Measure pos", "color2")
         goto.connect("clicked", self.goto_measure_pos)
+        jog = []
+        for d in (-10, -1, 1, 10):
+            b = self._gtk.Button(None, f"Y{d:+d}", "color3")
+            b.connect("clicked", self.jog_y, d)
+            jog.append(b)
+        save_pos = self._gtk.Button(None, "Save pos", "color2")
+        save_pos.connect("clicked", self.save_measure_pos)
 
         buttons = Gtk.Grid(column_homogeneous=True, vexpand=False)
         buttons.attach(self.start_btn, 0, 0, 2, 1)
         buttons.attach(clear, 2, 0, 2, 1)
         buttons.attach(goto, 4, 0, 2, 1)
+        for i, b in enumerate(jog):
+            buttons.attach(b, i, 1, 1, 1)
+        buttons.attach(save_pos, 4, 1, 2, 1)
         for i, k in enumerate(SLOTS):
             b = self._gtk.Button(None, f"Save {k}", "color1" if k in ("B", "A") else "color4")
             b.connect("clicked", self.save, k)
-            buttons.attach(b, i, 1, 1, 1)
+            buttons.attach(b, i, 2, 1, 1)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         box.pack_start(self.freq, True, True, 0)
@@ -104,7 +128,7 @@ class Panel(ScreenPanel):
         if spread > MATCH:
             # A/B: adjust the belt furthest from the target. Z: no target - adjust the belt
             # furthest from the median of the group towards it.
-            ref = TARGET if use_target else statistics.median(vals.values())
+            ref = TARGET if use_target else Z_TARGET
             far = max(vals, key=lambda k: abs(vals[k] - ref))
             others = [v for k, v in vals.items() if k != far]
             goal = statistics.median(others)
@@ -149,12 +173,40 @@ class Panel(ScreenPanel):
         self.saved[which] = statistics.median(good)
         self._update_ab()
         self.clear(None)
-        self.info.set_text(f"Saved belt {which}." + (" Z: match the four belts, the A/B target does not apply."
+        self.info.set_text(f"Saved belt {which}." + (f" Z: ~{Z_TARGET:.0f} Hz and match the four belts (the big A/B advice does not apply)."
                                                      if which.startswith("Z") else ""))
 
+    def _xy_homed(self):
+        homed = self._printer.get_stat("toolhead", "homed_axes") or ""
+        return "x" in homed and "y" in homed
+
+    def jog_y(self, widget, d):
+        """Move Y in small steps to set up the 150 mm span (needs X/Y homed; Z is not moved)."""
+        if not self._xy_homed():
+            self.info.set_text("Home X/Y first (press Measure pos).")
+            return
+        self._screen._ws.klippy.gcode_script(f"G91\nG1 Y{d} F3000\nG90")
+        pos = self._printer.get_stat("toolhead", "position") or [0, 0]
+        self.info.set_text(f"Y about {pos[1] + d:.0f}. Aim: X/Y idler centres 150 mm from the front idler centres, then Save pos.")
+
+    def save_measure_pos(self, widget):
+        if not self._xy_homed():
+            self.info.set_text("Home X/Y first.")
+            return
+        pos = self._printer.get_stat("toolhead", "position") or None
+        if not pos:
+            self.info.set_text("Toolhead position unknown.")
+            return
+        try:
+            with open(POS_FILE, "w") as f:
+                json.dump({"x": round(pos[0], 1), "y": round(pos[1], 1)}, f)
+            self.info.set_text(f"Measure position saved: X{pos[0]:.1f} Y{pos[1]:.1f}")
+        except OSError as e:
+            self.info.set_text(f"Could not save: {e}")
+
     def goto_measure_pos(self, widget):
-        """Move the toolhead to the fixed measuring position (homes X/Y first if needed; Z is not moved)."""
-        x, y = MEASURE_POS
+        """Move the toolhead to the saved measuring position (homes X/Y first if needed; Z is not moved)."""
+        x, y = load_pos()
         homed = self._printer.get_stat("toolhead", "homed_axes") or ""
         script = "" if ("x" in homed and "y" in homed) else "G28 X Y\n"
         self._screen._ws.klippy.gcode_script(f"{script}G90\nG1 X{x} Y{y} F6000")
