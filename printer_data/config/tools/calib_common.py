@@ -69,6 +69,10 @@ def reset_layout():
 def find_spot(w, h, height, margin=5.0):
     """First free (x0, y0) for a w x h footprint, scanning front-left to rear-right.
     Tall neighbours (or a tall new test) need DUCT_CLEARANCE instead of margin."""
+    tall = [r["name"] for r in load_layout() if r.get("height", 0) > MAX_REMOTE_HEIGHT]
+    if tall:
+        raise SystemExit(f"{tall[0]} is taller than {MAX_REMOTE_HEIGHT} mm - QGL would hit it. "
+                         "Clear the plate and run with --reset-layout first.")
     used = []
     if height > LOW_HEIGHT:          # the duct comes down to the bed at every probe point
         for px, py in PROBE_POINTS:
