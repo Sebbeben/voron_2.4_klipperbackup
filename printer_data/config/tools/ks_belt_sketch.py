@@ -61,10 +61,10 @@ def _pluck(x, y, side=1):
 
 def ab_sketch(which, w=260, h=290, mic=True):
     """Top view. which: 'B', 'A' or 'both' (setup view)."""
-    L, R, T, F = 34, w - 34, 26, h - 38          # frame inner lines (belt x positions, rear, front idlers)
+    L, R, T, F = 54, w - 54, 26, h - 38          # belt x positions, rear, front idlers
     jy = F - 120                                 # X/Y joints at the measuring position (150 mm span)
     b = []
-    b.append(f'<rect x="{L - 16}" y="{T - 16}" width="{R - L + 32}" height="{F - T + 30}" fill="none" '
+    b.append(f'<rect x="{L - 26}" y="{T - 16}" width="{R - L + 52}" height="{F - T + 30}" fill="none" '
              f'stroke="{FRAME}" stroke-width="3" rx="4"/>')
     # rear motors
     for x, name in ((L, "B"), (R, "A")):
@@ -86,8 +86,8 @@ def ab_sketch(which, w=260, h=290, mic=True):
         b.append(_dim_v(x + s * 22, jy, F, "150" if both else "150 mm", s, 0 if both else 30))
         if not both:
             b.append(_pluck(x, (jy + F) / 2, s))           # pluck in the middle of the span
-            if mic:
-                b.append(_mic(x + s * 44, (jy + F) / 2 - 34, s))  # movable mic: next to mid-span
+            if mic:   # movable mic: at mid-span, between the belt and the frame
+                b.append(_mic(x - s * 13, (jy + F) / 2, -s, "mic"))
     b.append(f'<text x="{w / 2}" y="{h - 6}" fill="{GREY}" font-size="14" text-anchor="middle">FRONT</text>')
     b.append(f'<text x="{L}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>'
              f'<text x="{R}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>')
@@ -99,7 +99,7 @@ def ab_sketch(which, w=260, h=290, mic=True):
 def z_sketch(slot, w=260, h=290, mic=True):
     """Side view of one Z drive + mini top view with the corner. slot: 'Z0'..'Z3' or None (setup)."""
     b = []
-    bx, iy = 70, h - 46                 # strand x (fixed side), Z idler centre y
+    bx, iy = 84, h - 46                 # strand x (fixed side), Z idler centre y
     gy = iy - 150                       # gantry clamp at 150 mm (schematic)
     # Z drive unit
     b.append(f'<rect x="{bx - 30}" y="{iy - 16}" width="92" height="40" rx="4" fill="#2b3338" stroke="{FRAME}"/>')
@@ -112,12 +112,14 @@ def z_sketch(slot, w=260, h=290, mic=True):
     # strands: fixed side highlighted, other side grey
     b.append(f'<line x1="{bx + 32}" y1="{iy - 9}" x2="{bx + 32}" y2="{gy - 4}" stroke="{BELT}" stroke-width="3"/>')
     b.append(f'<line x1="{bx}" y1="{iy - 9}" x2="{bx}" y2="{gy - 4}" stroke="{HL}" stroke-width="7"/>')
-    b.append(_dim_v(bx - 20, gy, iy, "150", -1, 34))
-    b.append(f'<text x="{bx - 28}" y="{(gy + iy) / 2 + 58}" fill="{DIM}" font-size="13" text-anchor="end">mm</text>')
+    b.append(_dim_v(bx + 54, gy, iy, "150", 1, 0))
+    b.append(f'<text x="{bx + 62}" y="{(gy + iy) / 2 + 24}" fill="{DIM}" font-size="13" text-anchor="start">mm</text>')
     b.append(f'<text x="{bx - 6}" y="{gy + 18}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
-    b.append(_pluck(bx, (gy + iy) / 2, 1) if slot else "")      # middle of the span
-    if slot and mic:
-        b.append(_mic(bx + 58, (gy + iy) / 2 - 40, 1))
+    b.append(_pluck(bx, (gy + iy) / 2, -1) if slot else "")     # middle of the span, from the left
+    if slot and mic:   # between the strands, at mid-span; label below
+        b.append(_mic(bx + 16, (gy + iy) / 2, 1, ""))
+        b.append(f'<text x="{bx + 16}" y="{(gy + iy) / 2 + 30}" fill="{MIC}" font-size="12" '
+                 f'text-anchor="middle">mic</text>')
     # mini top view with the four Z corners
     mx, my, ms = w - 100, 22, 56
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
