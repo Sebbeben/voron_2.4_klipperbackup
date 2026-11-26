@@ -75,6 +75,7 @@ class Panel(ScreenPanel):
         self.plucks = []
         self.saved = {k: None for k in SLOTS}
         self.fan_restore = []
+        self.last_msg = ""         # last non-protocol line from belt_freq.py (errors)
         self.current = None        # belt shown in the belt view
         self.guided = False
         self.round = 0
@@ -458,6 +459,7 @@ class Panel(ScreenPanel):
             self._fans_restore()
             return
         self.partial = ""
+        self.last_msg = ""
         self.watch = GLib.io_add_watch(self.proc.stdout, GLib.PRIORITY_DEFAULT,
                                        GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self._on_output)
         self.bt_start.set_label("Stop")
@@ -480,7 +482,10 @@ class Panel(ScreenPanel):
             self.proc = None
         self._fans_restore()
         self.bt_start.set_label("Start")
-        self.bt_info.set_markup(mk("Not listening - press Start", color=GREY))
+        if self.last_msg:   # keep the script's own message (e.g. no microphone) visible
+            self.bt_info.set_markup(mk(f"Stopped: {self.last_msg}", color=ORANGE))
+        else:
+            self.bt_info.set_markup(mk("Not listening - press Start", color=GREY))
 
     def _on_output(self, source, condition):
         if condition & GLib.IO_IN:
@@ -513,7 +518,8 @@ class Panel(ScreenPanel):
             if parts[1] == "go2rtc":
                 self.bt_info.set_markup(mk("Listening (mic shared with the webcam stream)", color=GREY))
         else:
-            self.bt_info.set_text(line[:120])
+            self.last_msg = line[:120]
+            self.bt_info.set_text(self.last_msg)
 
     def deactivate(self):
         if self.proc:
