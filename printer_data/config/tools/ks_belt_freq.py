@@ -256,8 +256,8 @@ class Panel(ScreenPanel):
             (extra + "\n" if extra else "")
             + f"A/B: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm (span = Y + {off:.0f}).  "
             + (f"Z belts: <b>Z{z:.0f}</b>\n" if cal else "Z belts: <b>not set</b> - measure once\n")
-            "The panel moves there automatically when you open a belt.\n"
-            f"To change: jog until a ruler shows {SPAN:.0f} mm, then <b>Save Y</b> / <b>Save Z</b>.")
+            + "The panel moves there automatically when you open a belt.\n"
+            + f"To change: jog until a ruler shows {SPAN:.0f} mm, then <b>Save Y</b> / <b>Save Z</b>.")
 
     def _show_overview(self, info=None):
         for k in SLOTS:
