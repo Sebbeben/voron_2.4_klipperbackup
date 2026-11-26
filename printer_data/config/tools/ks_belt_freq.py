@@ -248,7 +248,7 @@ class Panel(ScreenPanel):
             self.stack.set_visible_child_name(name)
 
     def _setup_text(self, extra=""):
-        x, y = load_pos()
+        x, y = self._pos()
         off = load_offset()
         z, cal = load_z()
         self.su_info.set_markup(
@@ -265,7 +265,7 @@ class Panel(ScreenPanel):
             val = mk(f"{v:.1f} Hz", "large", self._color(v, k), True) if v else mk("tap to measure", "small", GREY)
             self.slot_btns[k].set_markup(f"{mk(k, big, bold=True)}\n{val}")
         self.ov_groups.set_markup(self._group(AB) + "\n" + self._group(("Z0", "Z1", "Z2", "Z3")))
-        y = load_pos()[1]
+        y = self._pos()[1]
         self.ov_info.set_markup(info or f"A/B target <b>{TARGET:.0f} Hz</b> at {y + load_offset():.0f} mm span "
                                         f"(Measure pos Y{y:.0f}), within {MATCH:.0f} Hz of each other. "
                                         f"Tap a belt, or use <b>Guided A/B</b>.")
@@ -445,7 +445,7 @@ class Panel(ScreenPanel):
 
     def _pos(self):
         """Measuring X/Y: saved, else X = middle of the axis; clamped to the axis limits."""
-        x, y = load_pos()
+        x, y = self._pos()
         (x0, x1), (y0, y1) = self._limits("x"), self._limits("y")
         if x is None:
             x = (x0 + x1) / 2
@@ -546,7 +546,7 @@ class Panel(ScreenPanel):
 
     def goto_measure_pos(self, widget):
         """Move the toolhead to the saved measuring position (homes X/Y first if needed; Z is not moved)."""
-        x, y = load_pos()
+        x, y = self._pos()
         script = "" if self._xy_homed() else "G28 X Y\n"
         self._screen._ws.klippy.gcode_script(f"{script}{self._safe_z()}G90\nG1 X{x} Y{y} F6000")
         msg = f"Moving to X{x:.0f} Y{y:.0f} - motors stay on (belts held) until the idle timeout."
