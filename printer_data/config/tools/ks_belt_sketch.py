@@ -21,15 +21,15 @@ def _svg(w, h, body):
             f'font-family="sans-serif">{body}</svg>').encode()
 
 
-def _dim_v(x, y1, y2, label, side=1):
-    """Vertical dimension line with arrows and a label."""
+def _dim_v(x, y1, y2, label, side=1, dy=0):
+    """Vertical dimension line with arrows and a label (dy shifts the label, e.g. away from the pluck arrow)."""
     a = 7
     tx = x + side * 8
     anchor = "start" if side > 0 else "end"
     return (f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{DIM}" stroke-width="2"/>'
             f'<path d="M{x - a / 2},{y1 + a} L{x},{y1} L{x + a / 2},{y1 + a}" fill="none" stroke="{DIM}" stroke-width="2"/>'
             f'<path d="M{x - a / 2},{y2 - a} L{x},{y2} L{x + a / 2},{y2 - a}" fill="none" stroke="{DIM}" stroke-width="2"/>'
-            f'<text x="{tx}" y="{(y1 + y2) / 2 + 6}" fill="{DIM}" font-size="17" font-weight="bold" '
+            f'<text x="{tx}" y="{(y1 + y2) / 2 + 6 + dy}" fill="{DIM}" font-size="17" font-weight="bold" '
             f'text-anchor="{anchor}">{label}</text>')
 
 
@@ -67,9 +67,10 @@ def ab_sketch(which, w=260, h=290):
     sides = {"B": [(L, 1)], "A": [(R, -1)], "both": [(L, 1), (R, -1)]}[which]
     for x, s in sides:
         b.append(f'<line x1="{x}" y1="{F - 9}" x2="{x}" y2="{jy + 9}" stroke="{HL}" stroke-width="7"/>')
-        b.append(_dim_v(x + s * 22, jy, F, "150" if which == "both" else "150 mm", s))
-        if which != "both":
-            b.append(_pluck(x, (jy + F) / 2 - 22, s))
+        both = which == "both"
+        b.append(_dim_v(x + s * 22, jy, F, "150" if both else "150 mm", s, 0 if both else 30))
+        if not both:
+            b.append(_pluck(x, (jy + F) / 2, s))           # pluck in the middle of the span
     b.append(f'<text x="{w / 2}" y="{h - 6}" fill="{GREY}" font-size="14" text-anchor="middle">FRONT</text>')
     b.append(f'<text x="{L}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>'
              f'<text x="{R}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>')
@@ -94,10 +95,10 @@ def z_sketch(slot, w=260, h=290):
     # strands: fixed side highlighted, other side grey
     b.append(f'<line x1="{bx + 32}" y1="{iy - 9}" x2="{bx + 32}" y2="{gy - 4}" stroke="{BELT}" stroke-width="3"/>')
     b.append(f'<line x1="{bx}" y1="{iy - 9}" x2="{bx}" y2="{gy - 4}" stroke="{HL}" stroke-width="7"/>')
-    b.append(_dim_v(bx - 20, gy, iy, "150", -1))
-    b.append(f'<text x="{bx - 28}" y="{(gy + iy) / 2 + 24}" fill="{DIM}" font-size="13" text-anchor="end">mm</text>')
+    b.append(_dim_v(bx - 20, gy, iy, "150", -1, 34))
+    b.append(f'<text x="{bx - 28}" y="{(gy + iy) / 2 + 58}" fill="{DIM}" font-size="13" text-anchor="end">mm</text>')
     b.append(f'<text x="{bx - 6}" y="{gy + 18}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
-    b.append(_pluck(bx, (gy + iy) / 2 - 10, 1) if slot else "")
+    b.append(_pluck(bx, (gy + iy) / 2, 1) if slot else "")      # middle of the span
     # mini top view with the four Z corners
     mx, my, ms = w - 100, 22, 56
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
