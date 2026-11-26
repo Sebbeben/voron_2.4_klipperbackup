@@ -43,7 +43,7 @@ SPAN = 150.0
 # front idler and X/Y-joint idler positions relative to Y0/the nozzle - the same parts on every
 # V2.4 size. Measured on this V2.4 350 with a ruler 2026-11-26: 150 mm at Y105 -> 45 mm.
 DEFAULT_SPAN_OFFSET = 45.0
-DEFAULT_POS = (175.0, SPAN - DEFAULT_SPAN_OFFSET)
+DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X axis (any bed size)
 # Z belts: gantry height for measuring (Z span grows with Z as well). Default until set on the
 # panel with a ruler - "Save Z" stores it in POS_FILE.
 DEFAULT_Z = 60.0
@@ -55,7 +55,7 @@ def load_pos():
         with open(POS_FILE) as f:
             d = json.load(f)
         return float(d["x"]), float(d["y"])
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, TypeError):
         return DEFAULT_POS
 
 
@@ -419,18 +419,38 @@ class Panel(ScreenPanel):
         if not move:
             self.open_belt(None, AB[0])
             return
-        x, y = load_pos()
+        x, y = self._pos()
         home = "" if self._xy_homed() else "G28 X Y\n"
         # Move Y/X away so the belts redistribute tension, exactly like after a print; open_belt
         # then moves back to the measuring position and only starts listening once it stands still.
-        y_away = y + 100 if y < 200 else y - 100
+        # Distances scale with the bed and stay 10 mm inside the axis limits (any printer size).
+        (x0, x1), (y0, y1) = self._limits("x"), self._limits("y")
+        y_away = y + 0.4 * (y1 - y0) if y < (y0 + y1) / 2 else y - 0.4 * (y1 - y0)
+        y_away = min(max(y_away, y0 + 10), y1 - 10)
+        dx = min(0.25 * (x1 - x0), x - x0 - 10, x1 - 10 - x)
         self.open_belt(None, AB[0], autostart=False)
         self.bt_info.set_markup(mk("Moving the gantry away and back - wait...", color=ORANGE))
         self._screen._ws.klippy.gcode_script(
-            f"{home}{self._safe_z()}G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nM400",
+            f"{home}{self._safe_z()}G90\nG1 X{x:.1f} Y{y_away:.1f} F6000\nG1 X{x - dx:.1f} F6000\nG1 X{x + dx:.1f} F6000\nM400",
             self._moved, lambda: self._goto_for(AB[0], self.start))
 
     # ---------- position ----------
+    def _limits(self, axis):
+        """(min, max) of an axis from the printer config - works for any bed size."""
+        sec = self._printer.get_config_section(f"stepper_{axis}") or {}
+        try:
+            return float(sec.get("position_min", 0)), float(sec["position_max"])
+        except (KeyError, ValueError, TypeError):
+            return 0.0, 250.0
+
+    def _pos(self):
+        """Measuring X/Y: saved, else X = middle of the axis; clamped to the axis limits."""
+        x, y = load_pos()
+        (x0, x1), (y0, y1) = self._limits("x"), self._limits("y")
+        if x is None:
+            x = (x0 + x1) / 2
+        return min(max(x, x0), x1), min(max(y, y0), y1)
+
     def _goto_for(self, slot, after=None):
         """Move to the measuring position of this belt (A/B: X/Y, Z belts: gantry height), then
         call `after` once the move has finished (gcode M400 -> Moonraker replies afterwards).
@@ -439,7 +459,7 @@ class Panel(ScreenPanel):
         homed = th.get("homed_axes") or ""
         pos = th.get("position") or [None, None, None]
         if slot in AB:
-            x, y = load_pos()
+            x, y = self._pos()
             if "x" in homed and "y" in homed and pos[0] is not None and \
                     abs(pos[0] - x) < 0.5 and abs(pos[1] - y) < 0.5:
                 return after() if after else None
