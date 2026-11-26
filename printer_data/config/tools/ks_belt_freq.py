@@ -382,7 +382,7 @@ class Panel(ScreenPanel):
         weak = sum(1 for v in self.snrs[-3:] if v < SNR_OK)
         if self.level is not None and self.level > NOISY_DBFS:
             tip = "Noisy - stop fans/pumps nearby, close the door"
-        elif weak >= 2:
+        elif weak >= 2 and self.snrs[-1] < SNR_OK:
             tip = "Weak plucks - pluck firmer, in the middle of the span"
         else:
             tip = MIC_TIP["sensor" if self.mic == "sensor" else "camera"]
