@@ -110,6 +110,7 @@ Config changes (backup of the old files kept locally):
 - Added `fan_upgrade.cfg` (inactive)
 
 ## TODO
+- **Klipper local patch:** `klippy/mcu.py` TRSYNC_TIMEOUT 0.025 -> 0.050 (2026-11-26, Tap over CAN timed out during homing). Reapply after every Klipper update.
 Status 2026-11-18: **printer parked** until new A/B motors arrive. Sensorless X/Y homing fails with TMC `uv_cp` (Undervoltage) - traced to the **motor B (stepper_x)**, see "A/B motor fault" below. Do not print until the motors are replaced.
 
 ### Done 2026-11-13
