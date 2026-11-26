@@ -456,7 +456,7 @@ class Panel(ScreenPanel):
         cur = self.rounds[-1]
         prev = self.rounds[-2] if len(self.rounds) > 1 else None
         spread = abs(cur["B"] - cur["A"])
-        on_target = all(abs(v - TARGET) <= TOLERANCE for v in cur.values())
+        on_target = all(abs(cur[b] - TARGET) <= TOLERANCE for b in AB)   # cur also holds "moved"
         matched = spread <= MATCH
         settled = prev is not None and cur["moved"] and all(abs(cur[b] - prev[b]) < STABLE for b in AB)
         lines = []
