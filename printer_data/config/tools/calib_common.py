@@ -96,8 +96,7 @@ M109 S{temp}
 G1 Z0.5 F600
 G1 E1.5 F1800                   ; undo PRINT_END/previous tip retract
 G1 X{purge_x0 + purge_len:.1f} E14 F1200    ; purge line
-G1 X{purge_x0 + purge_len + 5:.1f} F6000     ; wipe
-G1 E-0.5 F2100
+G1 X{purge_x0 + purge_len + 5:.1f} F6000     ; wipe (first travel of the test retracts)
 G1 Z1 F600
 """
 
