@@ -99,7 +99,7 @@ def z_sketch(slot, w=260, h=290):
     b.append(f'<text x="{bx - 6}" y="{gy + 18}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
     b.append(_pluck(bx, (gy + iy) / 2 - 10, 1) if slot else "")
     # mini top view with the four Z corners
-    mx, my, ms = w - 86, 22, 56
+    mx, my, ms = w - 100, 22, 56
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
     b.append(f'<text x="{mx + ms / 2}" y="{my + ms + 22}" fill="{GREY}" font-size="11" text-anchor="middle">front</text>')
     for name, (fr, side) in Z_CORNERS.items():

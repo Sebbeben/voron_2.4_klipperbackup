@@ -21,11 +21,18 @@ import signal
 import statistics
 import subprocess
 
+import sys
+
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk, Pango
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf, GLib, Gtk, Pango
 from ks_includes.screen_panel import ScreenPanel
+
+# this file is symlinked into KlipperScreen/panels - load the sketch module from its real folder
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import ks_belt_sketch  # noqa: E402
 
 SCRIPT = os.path.expanduser("~/printer_data/config/tools/belt_freq.py")
 TARGET = 110.0
@@ -140,6 +147,20 @@ class Panel(ScreenPanel):
         return b
 
     @staticmethod
+    def _set_sketch(image, slot, w, h):
+        """Render the SVG sketch for a belt (or 'both' / None for the setup view) into `image`."""
+        try:
+            loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
+            loader.connect("size-prepared", lambda ld, w0, h0: ld.set_size(*(
+                (w, round(h0 * w / w0)) if w0 * h >= h0 * w else (round(w0 * h / h0), h))))
+            loader.write(ks_belt_sketch.sketch(slot))
+            loader.close()
+            image.set_from_pixbuf(loader.get_pixbuf())
+        except Exception as e:  # a missing SVG loader must not break the panel
+            image.clear()
+            image.set_tooltip_text(str(e))
+
+    @staticmethod
     def _label(wrap=True):
         lb = Gtk.Label(hexpand=True)
         lb.set_justify(Gtk.Justification.CENTER)
@@ -191,11 +212,17 @@ class Panel(ScreenPanel):
         bottom.attach(self._btn("Clear", "color2", self.clear), 1, 0, 1, 1)
         bottom.attach(self.bt_save, 2, 0, 1, 1)
         bottom.attach(self._btn("Back", "color4", self.leave_belt), 3, 0, 1, 1)
+        self.bt_sketch = Gtk.Image()
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
+        right.pack_start(self.bt_freq, True, True, 0)
+        right.pack_start(self.bt_median, False, False, 0)
+        right.pack_start(self.bt_hist, False, False, 0)
+        mid = Gtk.Box(spacing=8, vexpand=True)
+        mid.pack_start(self.bt_sketch, False, False, 0)
+        mid.pack_start(right, True, True, 0)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, vexpand=True)
         box.pack_start(self.bt_title, False, False, 0)
-        box.pack_start(self.bt_freq, True, True, 0)
-        box.pack_start(self.bt_median, False, False, 0)
-        box.pack_start(self.bt_hist, False, False, 0)
+        box.pack_start(mid, True, True, 0)
         box.pack_start(self.bt_info, False, False, 0)
         box.pack_end(bottom, False, False, 0)
         return box
@@ -233,8 +260,15 @@ class Panel(ScreenPanel):
         bottom.attach(self._btn("Go Z pos", "color2", self.goto_z_pos), 2, 0, 1, 1)
         bottom.attach(self._btn("Save Z", "color1", self.save_z_pos), 3, 0, 1, 1)
         bottom.attach(self._btn("Back", "color4", self.show_view, "overview"), 4, 0, 1, 1)
+        self.su_ab, self.su_z = Gtk.Image(), Gtk.Image()
+        self._set_sketch(self.su_ab, "both", 150, 165)
+        self._set_sketch(self.su_z, None, 150, 165)
+        top = Gtk.Box(spacing=6, vexpand=True)
+        top.pack_start(self.su_ab, False, False, 0)
+        top.pack_start(self.su_z, False, False, 0)
+        top.pack_start(self.su_info, True, True, 0)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, vexpand=True)
-        box.pack_start(self.su_info, True, True, 0)
+        box.pack_start(top, True, True, 0)
         box.pack_start(jog, False, False, 0)
         box.pack_end(bottom, False, False, 0)
         return box
@@ -254,11 +288,10 @@ class Panel(ScreenPanel):
         z, cal = load_z()
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
-            + f"A/B: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm (span = Y + {off:.0f})\n"
-            + (f"Z belts: <b>Z{z:.0f}</b>\n" if cal else
-               "Z belts: <b>not set</b> - jog Z until the fixed side is 150 mm from the Z idler centres\n")
-            + "The panel moves there automatically when you open a belt.\n"
-            + f"To change: jog until a ruler shows {SPAN:.0f} mm, then <b>Save Y</b> / <b>Save Z</b>.")
+            + f"A/B: <b>Y{y:.0f}</b> (X{x:.0f}) = {y + off:.0f} mm\n"
+            + (f"Z: <b>Z{z:.0f}</b>\n" if cal else "Z: <b>not set</b> - measure once\n")
+            + "Moves there by itself when a belt is opened.\n"
+            + f"Change: jog until the ruler shows <b>{SPAN:.0f} mm</b> (blue), then <b>Save Y</b> / <b>Save Z</b>.")
 
     def _show_overview(self, info=None):
         for k in SLOTS:
@@ -328,6 +361,7 @@ class Panel(ScreenPanel):
         self.bt_title.set_markup(mk(f"Belt {slot}", "x-large", bold=True)
                                  + mk(f"   target {target_of(slot):.0f} Hz{rnd}{prev_txt}", "medium", GREY))
         self.bt_freq.set_markup(mk("---", "60000", GREY, True))
+        self._set_sketch(self.bt_sketch, slot, 230, 255)
         self.bt_save.set_label("Save + next" if self.guided else "Save")
         self.bt_info.set_text("")
         self._update_belt()
