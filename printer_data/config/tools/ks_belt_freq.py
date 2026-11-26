@@ -23,7 +23,9 @@ SCRIPT = os.path.expanduser("~/printer_data/config/tools/belt_freq.py")
 TARGET = 110.0
 TOLERANCE = 5.0   # green within +-5 Hz of the target
 MATCH = 2.0       # belts of one group (A/B, Z0-Z3) within this of each other
-SLOTS = ("A", "B", "Z0", "Z1", "Z2", "Z3")
+SLOTS = ("B", "A", "Z0", "Z1", "Z2", "Z3")   # B first: left as seen from the front
+# Fixed toolhead position for measuring, so every measurement uses the same belt span lengths.
+MEASURE_POS = (175, 175)
 
 
 class Panel(ScreenPanel):
@@ -51,11 +53,15 @@ class Panel(ScreenPanel):
         self.start_btn.connect("clicked", self.toggle)
         clear = self._gtk.Button("refresh", "Clear", "color2")
         clear.connect("clicked", self.clear)
+        goto = self._gtk.Button("move", "Measure pos", "color2")
+        goto.connect("clicked", self.goto_measure_pos)
+
         buttons = Gtk.Grid(column_homogeneous=True, vexpand=False)
-        buttons.attach(self.start_btn, 0, 0, 3, 1)
-        buttons.attach(clear, 3, 0, 3, 1)
+        buttons.attach(self.start_btn, 0, 0, 2, 1)
+        buttons.attach(clear, 2, 0, 2, 1)
+        buttons.attach(goto, 4, 0, 2, 1)
         for i, k in enumerate(SLOTS):
-            b = self._gtk.Button(None, f"Save {k}", "color1" if k in ("A", "B") else "color4")
+            b = self._gtk.Button(None, f"Save {k}", "color1" if k in ("B", "A") else "color4")
             b.connect("clicked", self.save, k)
             buttons.attach(b, i, 1, 1, 1)
 
@@ -107,7 +113,7 @@ class Panel(ScreenPanel):
         return txt
 
     def _update_ab(self):
-        self.ab.set_markup(self._group(("A", "B"), True) + "\n" + self._group(("Z0", "Z1", "Z2", "Z3"), False))
+        self.ab.set_markup(self._group(("B", "A"), True) + "\n" + self._group(("Z0", "Z1", "Z2", "Z3"), False))
 
     def _update_results(self):
         good = [f for f, ok in self.plucks if ok]
@@ -145,6 +151,14 @@ class Panel(ScreenPanel):
         self.clear(None)
         self.info.set_text(f"Saved belt {which}." + (" Z: match the four belts, the A/B target does not apply."
                                                      if which.startswith("Z") else ""))
+
+    def goto_measure_pos(self, widget):
+        """Move the toolhead to the fixed measuring position (homes X/Y first if needed; Z is not moved)."""
+        x, y = MEASURE_POS
+        homed = self._printer.get_stat("toolhead", "homed_axes") or ""
+        script = "" if ("x" in homed and "y" in homed) else "G28 X Y\n"
+        self._screen._ws.klippy.gcode_script(f"{script}G90\nG1 X{x} Y{y} F6000")
+        self.info.set_text(f"Moving to X{x} Y{y} - motors stay on (belts held) until the idle timeout.")
 
     # ---------- fans ----------
     def _fans_off(self):
