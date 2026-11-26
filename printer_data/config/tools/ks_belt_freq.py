@@ -79,7 +79,8 @@ class Panel(ScreenPanel):
         self.current = None        # belt shown in the belt view
         self.guided = False
         self.round = 0
-        self.rounds = []           # guided: list of {"B": f, "A": f} per finished round
+        self.rounds = []           # guided: list of {"B": f, "A": f, "moved": bool} per finished round
+        self.moved = False         # guided: current round started with a gantry move
 
         self.stack = Gtk.Stack(vexpand=True)
         self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
@@ -304,7 +305,7 @@ class Panel(ScreenPanel):
             if i + 1 < len(AB):
                 self.open_belt(None, AB[i + 1])
             else:
-                self.rounds.append({b: self.saved[b] for b in AB})
+                self.rounds.append(dict({b: self.saved[b] for b in AB}, moved=self.moved))
                 self._show_check()
         else:
             self._show_overview(f"Saved belt {k}: <b>{self.saved[k]:.1f} Hz</b>")
@@ -314,6 +315,7 @@ class Panel(ScreenPanel):
         self.guided = True
         self.round = 1
         self.rounds = []
+        self.moved = False
         if self.proc:
             self.stop()
         self.open_belt(None, AB[0])
@@ -330,7 +332,7 @@ class Panel(ScreenPanel):
         spread = abs(cur["B"] - cur["A"])
         on_target = all(abs(v - TARGET) <= TOLERANCE for v in cur.values())
         matched = spread <= MATCH
-        settled = prev is not None and all(abs(cur[b] - prev[b]) < STABLE for b in AB)
+        settled = prev is not None and cur["moved"] and all(abs(cur[b] - prev[b]) < STABLE for b in AB)
         lines = []
         for b in AB:
             v = cur[b]
@@ -362,12 +364,14 @@ class Panel(ScreenPanel):
 
     def next_round(self, widget, move):
         self.round += 1
+        self.moved = move
         if move:
             x, y = load_pos()
+            home = "" if self._xy_homed() else "G28 X Y\n"
             # Move Y away and back so the belts redistribute tension, exactly like after a print
             y_away = y + 100 if y < 200 else y - 100
             self._screen._ws.klippy.gcode_script(
-                f"G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nG1 X{x} Y{y} F6000\nM400")
+                f"{home}G90\nG1 X{x} Y{y_away} F6000\nG1 X{x - 80} F6000\nG1 X{x + 80} F6000\nG1 X{x} Y{y} F6000\nM400")
         # after a move: do not listen yet - motor noise would be taken as plucks
         self.open_belt(None, AB[0], autostart=not move)
         if move:
