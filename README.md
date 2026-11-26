@@ -199,6 +199,8 @@ Plan:
 - [x] Test and enable `homing_v2.cfg` (2026-11-17)
 - [ ] Test and enable `load_unload_filament_v2.cfg`
 - [ ] Belt tension ~110 Hz over 150 mm, A/B within 2 Hz: `tools/belt_freq.py` (camera mic) or a phone app
+- [ ] Belt tension tool upstream: after real-belt tests, publish as a standalone repo (install script, Moonraker update_manager, configurable ALSA device, no hard-coded paths), then offer the panel to KlipperScreen as a PR (needs translations; numpy is not in the KlipperScreen env, so the analysis stays a separate script)
+- [ ] Belt sensor board (idea): small USB board, enumerates as a standard USB audio device so `belt_freq.py` works unchanged. RP2040 + PDM MEMS mic (TinyUSB UAC) close to the belt, optional IR reflective sensor that sees the belt vibrate directly (immune to the ~82 Hz ambient hum). Magnet/clip mount, moved between the A/B spans. Try a cheap USB lavalier mic first
 - [ ] Homing repeat test after the motor swap: `tools/homing_test.sh 10` (stops at the first error)
 - [x] `SHAPER_CALIBRATE` + `SAVE_CONFIG` (2026-11-17, provisional - redo when the toolhead is finished, X with `FREQ_END=170`)
 - [ ] Extruder `rotation_distance`, then OrcaSlicer flow, PA and max volumetric flow tests
