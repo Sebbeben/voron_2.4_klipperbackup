@@ -53,7 +53,7 @@ if total_h > cc.MAX_REMOTE_HEIGHT:
     sys.exit(f"test is {total_h:.1f} mm tall - over {cc.MAX_REMOTE_HEIGHT} mm the toolhead hits it during the next QGL (Z10 travel)")
 foot = a.diameter + 2 * (BRIM * 0.45 + 1)
 PURGE_DY = 6.0
-fx, fy = cc.find_spot(foot, foot + PURGE_DY)
+fx, fy = cc.find_spot(foot, foot + PURGE_DY, total_h)
 cx, cy = fx + foot / 2, fy + PURGE_DY + foot / 2
 
 table = []
@@ -127,7 +127,7 @@ while z < total_h:
 w("EXCLUDE_OBJECT_END NAME=max_flow")
 w(cc.end_gcode(a.bed))
 open(a.out, "w").write("\n".join(out) + "\n")
-cc.record((fx, fy, fx + foot, fy + foot + PURGE_DY), os.path.basename(a.out))
+cc.record((fx, fy, fx + foot, fy + foot + PURGE_DY), os.path.basename(a.out), total_h)
 print(f"{a.out}: centre {cx:.1f},{cy:.1f}, height {total_h:.1f} mm")
 for z0, z1, qv, v in table:
     print(f"  {z0:5.1f}-{z1:5.1f} mm  {qv:5.1f} mm3/s  {v:4.0f} mm/s")

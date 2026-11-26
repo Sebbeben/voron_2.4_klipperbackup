@@ -16,6 +16,12 @@ FIL_AREA = math.pi * (1.75 / 2) ** 2
 # QGL travels between probe points at horizontal_move_z 10 - the toolhead/duct passes over
 # most of the bed, so remote tests must stay well below that.
 MAX_REMOTE_HEIGHT = 6.0
+# The duct/toolhead extends ~30 mm around the nozzle and sits only a few mm above the tip.
+# Printing (and bed_mesh at horizontal_move_z 2) next to a taller earlier test makes the duct
+# hit it - Tap then reports "Probe triggered prior to movement" (2026-11-26). Keep this much
+# clearance to any test taller than LOW_HEIGHT.
+DUCT_CLEARANCE = 35.0
+LOW_HEIGHT = 1.5
 
 # Keep-out rectangles (x0, y0, x1, y1)
 KEEP_OUT = [
@@ -57,9 +63,14 @@ def reset_layout():
         os.remove(LAYOUT_FILE)
 
 
-def find_spot(w, h, margin=5.0):
-    """First free (x0, y0) for a w x h footprint, scanning front-left to rear-right."""
-    used = [tuple(r["rect"]) for r in load_layout()]
+def find_spot(w, h, height, margin=5.0):
+    """First free (x0, y0) for a w x h footprint, scanning front-left to rear-right.
+    Tall neighbours (or a tall new test) need DUCT_CLEARANCE instead of margin."""
+    used = []
+    for r in load_layout():
+        m = DUCT_CLEARANCE if max(r.get("height", MAX_REMOTE_HEIGHT), height) > LOW_HEIGHT else margin
+        x0, y0, x1, y1 = r["rect"]
+        used.append((x0 - m + margin, y0 - m + margin, x1 + m - margin, y1 + m - margin))
     y = 10.0
     while y + h <= BED_Y:
         x = 10.0
@@ -72,9 +83,9 @@ def find_spot(w, h, margin=5.0):
     raise SystemExit("No free spot on the bed - clear the plate and run with --reset-layout")
 
 
-def record(rect, name):
+def record(rect, name, height):
     lay = load_layout()
-    lay.append({"name": name, "rect": [round(v, 1) for v in rect],
+    lay.append({"name": name, "rect": [round(v, 1) for v in rect], "height": round(height, 2),
                 "time": time.strftime("%Y-%m-%d %H:%M")})
     json.dump(lay, open(LAYOUT_FILE, "w"), indent=1)
 

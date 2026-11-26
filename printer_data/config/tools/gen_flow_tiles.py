@@ -49,7 +49,7 @@ grid_h = rows * T + (rows - 1) * GAP
 MARK = 5.0                            # marker square left of the first tile
 PURGE_DY = 6.0                        # purge line runs in front of the grid
 foot_w, foot_h = grid_w + MARK + 3, grid_h + PURGE_DY
-fx, fy = cc.find_spot(foot_w, foot_h)
+fx, fy = cc.find_spot(foot_w, foot_h, H * a.layers)
 gx, gy = fx + MARK + 3, fy + PURGE_DY  # grid origin (front-left of first tile)
 
 tiles = []
@@ -144,6 +144,6 @@ for layer in range(1, a.layers + 1):
 
 w(cc.end_gcode(a.bed))
 open(a.out, "w").write("\n".join(out) + "\n")
-cc.record((fx, fy, fx + foot_w, fy + foot_h), os.path.basename(a.out))
+cc.record((fx, fy, fx + foot_w, fy + foot_h), os.path.basename(a.out), H * a.layers)
 print(f"{a.out}: {n} tiles {flows[0]}..{flows[-1]}, footprint X {fx:.1f}-{fx+foot_w:.1f} "
       f"Y {fy:.1f}-{fy+foot_h:.1f}")

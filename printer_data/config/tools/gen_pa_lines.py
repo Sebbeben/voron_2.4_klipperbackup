@@ -42,7 +42,7 @@ if a.fixed:
     X0, Y0 = 130.0, 120.0
 else:                                    # free spot; purge line 6 mm in front
     fw, fh = 15 + sum(SEG) + 2, (n - 1) * DY + 2 + 8
-    fx, fy = cc.find_spot(fw, fh)
+    fx, fy = cc.find_spot(fw, fh, H)
     X0, Y0 = fx + 15, fy + 8
 y_max = Y0 + (n - 1) * DY
 x_min, x_max = X0 - 15, X0 + sum(SEG)
@@ -97,6 +97,6 @@ if a.fixed:
     w("PRINT_END")
 else:
     w(cc.end_gcode(a.bed))
-    cc.record((fx, fy, fx + fw, fy + fh), os.path.basename(a.out))
+    cc.record((fx, fy, fx + fw, fy + fh), os.path.basename(a.out), H)
 open(a.out, "w").write("\n".join(g) + "\n")
 print(f"{a.out}: {n} lines, PA {pas[0]}..{pas[-1]}, E/mm {E_MM:.5f}, Y {Y0}..{y_max}")

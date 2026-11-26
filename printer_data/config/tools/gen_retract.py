@@ -52,7 +52,7 @@ layers = int(round((a.height - H1) / H)) + 1
 pair_w = 2 * D + GAP
 foot_w = pair_w + 8           # + marker tab
 foot_h = (n - 1) * PITCH + D + 6   # + purge line in front
-fx, fy = cc.find_spot(foot_w, foot_h)
+fx, fy = cc.find_spot(foot_w, foot_h, a.height)
 x_left = fx + 8 + D / 2       # centre of left towers
 x_right = x_left + D + GAP
 y0 = fy + 6 + D / 2
@@ -135,6 +135,6 @@ for L in range(layers):
 
 w(cc.end_gcode(a.bed))
 open(a.out, "w").write("\n".join(out) + "\n")
-cc.record((fx, fy, fx + foot_w, fy + foot_h), os.path.basename(a.out))
+cc.record((fx, fy, fx + foot_w, fy + foot_h), os.path.basename(a.out), a.height)
 print(f"{a.out}: {n} pairs {rets[0]}..{rets[-1]} mm, {layers} layers, "
       f"footprint X {fx:.1f}-{fx + foot_w:.1f} Y {fy:.1f}-{fy + foot_h:.1f}")
