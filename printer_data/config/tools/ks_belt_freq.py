@@ -329,6 +329,7 @@ class Panel(ScreenPanel):
         self.bt_save.set_label("Save + next" if self.guided else "Save")
         self.bt_info.set_text("")
         self._update_belt()
+        self.bt_start.set_label("Stop" if self.proc else "Start")
         self.stack.set_visible_child_name("belt")
         if autostart and not self.proc:
             self._goto_for(slot, self.start)
