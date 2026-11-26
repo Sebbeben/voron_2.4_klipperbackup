@@ -70,7 +70,7 @@ for i, r in enumerate(rets):
 mk = (x_left - D / 2 - 6, y0 - 2)
 w(f"EXCLUDE_OBJECT_DEFINE NAME=marker CENTER={mk[0] + 2:.2f},{mk[1] + 2:.2f} "
   f"POLYGON=[[{mk[0]:.2f},{mk[1]:.2f}],[{mk[0]+4:.2f},{mk[1]:.2f}],[{mk[0]+4:.2f},{mk[1]+4:.2f}],[{mk[0]:.2f},{mk[1]+4:.2f}]]")
-w(cc.start_gcode(a.first_bed, a.first_temp, x_left, fy + 1.0, min(40.0, pair_w),
+w(cc.start_gcode(a.first_bed, a.first_temp, fx + 2, fy + 1.0, foot_w - 10,   # purge + wipe stay inside the footprint
                  obj_xy=((x_left + x_right) / 2, y0 + (n - 1) * PITCH / 2)))
 
 state = {"retracted": 0.0, "z": 0.0}
