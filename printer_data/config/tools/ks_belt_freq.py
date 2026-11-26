@@ -445,7 +445,7 @@ class Panel(ScreenPanel):
 
     def _pos(self):
         """Measuring X/Y: saved, else X = middle of the axis; clamped to the axis limits."""
-        x, y = self._pos()
+        x, y = load_pos()
         (x0, x1), (y0, y1) = self._limits("x"), self._limits("y")
         if x is None:
             x = (x0 + x1) / 2
