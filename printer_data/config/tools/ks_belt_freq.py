@@ -60,8 +60,8 @@ DEFAULT_Z = 60.0
 SNR_OK, SNR_GOOD = 20.0, 30.0
 NOISY_DBFS = -40.0
 MIC_TIP = {   # where the microphone should be, per source
-    "camera": "Mic: USB camera (fixed) - pluck firmly, same spot each time",
-    "sensor": "Mic: belt sensor - clip it 1-2 cm from the belt at mid-span",
+    "camera": "Mic: if the camera can be moved, put it at the mic symbol - a few cm from the belt, not touching",
+    "sensor": "Mic: belt sensor at the mic symbol - clip it 1-2 cm from the belt at mid-span",
 }
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
