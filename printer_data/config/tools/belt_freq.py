@@ -25,7 +25,10 @@ import numpy as np
 
 DEVICE = "plughw:CARD=Camera,DEV=0"
 RATE = 16000
-GO2RTC_AUDIO = "rtsp://127.0.0.1:8556/usbcam_audio"  # fallback when the ALSA device is busy
+# Fallbacks when the ALSA device is busy. The mic is busy because a go2rtc stream is using it:
+# usually "usbcam" (video + audio for a WebRTC viewer) - its audio track can be shared with ?audio.
+# A separate "usbcam_audio" cannot open the busy mic then (go2rtc answers 404), so it comes second.
+GO2RTC_AUDIO_URLS = ("rtsp://127.0.0.1:8556/usbcam?audio", "rtsp://127.0.0.1:8556/usbcam_audio")
 
 
 MOONRAKER = "http://localhost:7125"
@@ -79,11 +82,13 @@ def record(seconds, path):
         return
     # ALSA device busy (go2rtc is streaming the mic to a viewer): take the audio from go2rtc instead.
     print("ALSA busy (" + r.stderr.strip()[:80] + ") - recording via go2rtc RTSP instead", flush=True)
-    cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-rtsp_transport", "tcp",
-           "-i", GO2RTC_AUDIO, "-t", str(seconds), "-vn", "-ac", "1", "-ar", str(RATE), path]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0:
-        sys.exit("recording failed: " + r.stderr.strip())
+    for url in GO2RTC_AUDIO_URLS:
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-rtsp_transport", "tcp",
+               "-i", url, "-t", str(seconds), "-vn", "-ac", "1", "-ar", str(RATE), path]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode == 0:
+            return
+    sys.exit("recording failed: " + r.stderr.strip())
 
 
 def load(path):
@@ -142,10 +147,20 @@ def live(fmin, fmax, max_seconds):
     src = "alsa"
     if len(first) < 3200:  # ALSA busy -> go2rtc
         proc.kill()
-        ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-i", GO2RTC_AUDIO,
-              "-vn", "-ac", "1", "-ar", str(RATE), "-f", "s16le", "-"]
-        proc = subprocess.Popen(ff, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        first = b""
+        for url in GO2RTC_AUDIO_URLS:
+            ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-i", url,
+                  "-vn", "-ac", "1", "-ar", str(RATE), "-f", "s16le", "-"]
+            proc = subprocess.Popen(ff, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            first = proc.stdout.read(1600)
+            if first:
+                break
+            err = proc.stderr.read().decode(errors="replace").strip().splitlines()
+            proc.kill()
+        else:
+            print("No audio: microphone busy and go2rtc audio unavailable (" + (err[-1][:70] if err else "?") + ")",
+                  flush=True)
+            print("END", flush=True)
+            return
         src = "go2rtc"
     print(f"SOURCE {src}", flush=True)
 
