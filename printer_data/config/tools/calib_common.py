@@ -85,7 +85,7 @@ def start_gcode(bed, temp, purge_x0, purge_y, purge_len=60.0, obj_xy=None):
     ox, oy = obj_xy if obj_xy else (purge_x0, purge_y + 10)
     return f"""M140 S{bed}
 M104 S150                       ; warm, non-oozing nozzle for Tap
-SET_IDLE_TIMEOUT TIMEOUT=10800
+SET_IDLE_TIMEOUT TIMEOUT=1800
 G90
 M83
 G28
@@ -117,5 +117,5 @@ G1 Z10 F600
 G90
 G1 X175 Y325 F12000
 M140 S{bed}                     ; bed stays hot for the next test
-SET_IDLE_TIMEOUT TIMEOUT=10800
+SET_IDLE_TIMEOUT TIMEOUT=1800
 """
