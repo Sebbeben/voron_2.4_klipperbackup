@@ -38,7 +38,6 @@ AB = ("B", "A")
 # Voron: A/B span 150 mm = X/Y-joint idler centres 150 mm from the front idler centres.
 POS_FILE = os.path.expanduser("~/printer_data/config/tools/belt_freq_pos.json")
 DEFAULT_POS = (175.0, 175.0)
-DEMO = "/tmp/claude-1000/-home-voron/81b79479-9bfe-4a5f-8466-c9e16814101f/scratchpad/belt_demo.py"  # TEMP UI TEST HOOK - remove
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
 
@@ -452,10 +451,7 @@ class Panel(ScreenPanel):
     def start(self):
         warm = self._fans_off()
         try:
-            cmd = ["/usr/bin/python3", "-u", SCRIPT, "--live"]
-            if os.path.exists(DEMO):  # TEMP UI TEST HOOK - remove
-                cmd = ["/usr/bin/python3", "-u", DEMO]
-            self.proc = subprocess.Popen(cmd,
+            self.proc = subprocess.Popen(["/usr/bin/python3", "-u", SCRIPT, "--live"],
                                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except OSError as e:
             self.bt_info.set_text(f"Could not start: {e}")
