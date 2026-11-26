@@ -5,8 +5,9 @@
 #   [menu __main more belt_freq]  panel: belt_freq
 #
 # Start: part fan + Nevermore off, runs tools/belt_freq.py --live and shows every pluck.
-# Stop:  ends the recording and restores the fans. A / B store the current median so the
-# two belts can be compared. Target on a V2.4: ~110 Hz over a 150 mm span, A/B within 2 Hz.
+# Stop:  ends the recording and restores the fans. A / B / Z0-Z3 store the current median so
+# the belts can be compared. Target on a V2.4: A/B ~110 Hz over a 150 mm span, A/B within 2 Hz.
+# Z belts have no official target: the four should match each other (within ~2 Hz).
 import os
 import signal
 import statistics
@@ -21,6 +22,8 @@ from ks_includes.screen_panel import ScreenPanel
 SCRIPT = os.path.expanduser("~/printer_data/config/tools/belt_freq.py")
 TARGET = 110.0
 TOLERANCE = 5.0   # green within +-5 Hz of the target
+MATCH = 2.0       # belts of one group (A/B, Z0-Z3) within this of each other
+SLOTS = ("A", "B", "Z0", "Z1", "Z2", "Z3")
 
 
 class Panel(ScreenPanel):
@@ -31,7 +34,7 @@ class Panel(ScreenPanel):
         self.watch = None
         self.partial = ""
         self.plucks = []
-        self.saved = {"A": None, "B": None}
+        self.saved = {k: None for k in SLOTS}
         self.fan_restore = []
 
         self.freq = Gtk.Label(hexpand=True)
@@ -41,23 +44,20 @@ class Panel(ScreenPanel):
                               hexpand=True, wrap=True)
         self.median = Gtk.Label(hexpand=True)
         self.history = Gtk.Label(hexpand=True, wrap=True)
-        self.ab = Gtk.Label(hexpand=True)
+        self.ab = Gtk.Label(hexpand=True, wrap=True)
         self._update_ab()
 
         self.start_btn = self._gtk.Button("resume", "Start", "color3")
         self.start_btn.connect("clicked", self.toggle)
         clear = self._gtk.Button("refresh", "Clear", "color2")
         clear.connect("clicked", self.clear)
-        save_a = self._gtk.Button(None, "Save A", "color1")
-        save_a.connect("clicked", self.save, "A")
-        save_b = self._gtk.Button(None, "Save B", "color4")
-        save_b.connect("clicked", self.save, "B")
-
         buttons = Gtk.Grid(column_homogeneous=True, vexpand=False)
-        buttons.attach(self.start_btn, 0, 0, 1, 1)
-        buttons.attach(clear, 1, 0, 1, 1)
-        buttons.attach(save_a, 2, 0, 1, 1)
-        buttons.attach(save_b, 3, 0, 1, 1)
+        buttons.attach(self.start_btn, 0, 0, 3, 1)
+        buttons.attach(clear, 3, 0, 3, 1)
+        for i, k in enumerate(SLOTS):
+            b = self._gtk.Button(None, f"Save {k}", "color1" if k in ("A", "B") else "color4")
+            b.connect("clicked", self.save, k)
+            buttons.attach(b, i, 1, 1, 1)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         box.pack_start(self.freq, True, True, 0)
@@ -86,20 +86,28 @@ class Panel(ScreenPanel):
             return '<b><span foreground="#ff9800">LOOSEN</span></b> (too tight)'
         return '<b><span foreground="#4caf50">OK</span></b>'
 
+    def _group(self, keys, use_target):
+        """One line per belt group: saved values, spread, and which belt to adjust."""
+        vals = {k: self.saved[k] for k in keys if self.saved[k]}
+        txt = "  ".join(f"{k}: " + (f"{self.saved[k]:.1f}" if self.saved[k] else "-") for k in keys)
+        if len(vals) < 2:
+            return txt
+        spread = max(vals.values()) - min(vals.values())
+        col = "#4caf50" if spread <= MATCH else "#ff9800"
+        txt += f'   <span foreground="{col}">spread {spread:.1f} Hz</span>'
+        if spread > MATCH:
+            # A/B: adjust the belt furthest from the target. Z: no target - adjust the belt
+            # furthest from the median of the group towards it.
+            ref = TARGET if use_target else statistics.median(vals.values())
+            far = max(vals, key=lambda k: abs(vals[k] - ref))
+            others = [v for k, v in vals.items() if k != far]
+            goal = statistics.median(others)
+            act = "tighten" if vals[far] < goal else "loosen"
+            txt += f'\n<b>{act} {far}</b> towards {goal:.1f} Hz'
+        return txt
+
     def _update_ab(self):
-        a, b = self.saved["A"], self.saved["B"]
-        txt = "A: " + (f"{a:.1f} Hz" if a else "-") + "    B: " + (f"{b:.1f} Hz" if b else "-")
-        if a and b:
-            d = a - b
-            col = "#4caf50" if abs(d) <= 2 else "#ff9800"
-            txt += f'    <span foreground="{col}">A-B {d:+.1f} Hz</span>'
-            if abs(d) > 2:
-                # Adjust the belt that is further from the target.
-                far, near = ("A", "B") if abs(a - TARGET) >= abs(b - TARGET) else ("B", "A")
-                fv = self.saved[far]
-                act = "tighten" if fv < self.saved[near] else "loosen"
-                txt += f'\n<b>{act} {far}</b> to match {near}'
-        self.ab.set_markup(txt)
+        self.ab.set_markup(self._group(("A", "B"), True) + "\n" + self._group(("Z0", "Z1", "Z2", "Z3"), False))
 
     def _update_results(self):
         good = [f for f, ok in self.plucks if ok]
@@ -135,7 +143,8 @@ class Panel(ScreenPanel):
         self.saved[which] = statistics.median(good)
         self._update_ab()
         self.clear(None)
-        self.info.set_text(f"Saved belt {which}. Measure the other belt and save it too.")
+        self.info.set_text(f"Saved belt {which}." + (" Z: match the four belts, the A/B target does not apply."
+                                                     if which.startswith("Z") else ""))
 
     # ---------- fans ----------
     def _fans_off(self):
