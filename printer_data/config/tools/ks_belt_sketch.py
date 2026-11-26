@@ -67,7 +67,7 @@ def ab_sketch(which, w=260, h=290):
     sides = {"B": [(L, 1)], "A": [(R, -1)], "both": [(L, 1), (R, -1)]}[which]
     for x, s in sides:
         b.append(f'<line x1="{x}" y1="{F - 9}" x2="{x}" y2="{jy + 9}" stroke="{HL}" stroke-width="7"/>')
-        b.append(_dim_v(x + s * 22, jy, F, "150 mm", s))
+        b.append(_dim_v(x + s * 22, jy, F, "150" if which == "both" else "150 mm", s))
         if which != "both":
             b.append(_pluck(x, (jy + F) / 2 - 22, s))
     b.append(f'<text x="{w / 2}" y="{h - 6}" fill="{GREY}" font-size="14" text-anchor="middle">FRONT</text>')
@@ -99,18 +99,18 @@ def z_sketch(slot, w=260, h=290):
     b.append(f'<text x="{bx - 6}" y="{gy + 18}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
     b.append(_pluck(bx, (gy + iy) / 2 - 10, 1) if slot else "")
     # mini top view with the four Z corners
-    mx, my, ms = w - 92, 18, 80
+    mx, my, ms = w - 86, 22, 56
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
-    b.append(f'<text x="{mx + ms / 2}" y="{my + ms + 15}" fill="{GREY}" font-size="11" text-anchor="middle">front</text>')
+    b.append(f'<text x="{mx + ms / 2}" y="{my + ms + 22}" fill="{GREY}" font-size="11" text-anchor="middle">front</text>')
     for name, (fr, side) in Z_CORNERS.items():
-        cx = mx + (10 if side == "left" else ms - 10)
-        cy = my + (ms - 10 if fr == "front" else 10)
+        cx = mx + (0 if side == "left" else ms)
+        cy = my + (ms if fr == "front" else 0)
         on = name == slot
         b.append(f'<circle cx="{cx}" cy="{cy}" r="{9 if on else 6}" fill="{HL if on else "#2b3338"}" '
                  f'stroke="{HL if on else GREY}" stroke-width="2"/>')
-        tx = cx + (14 if side == "left" else -14)
-        b.append(f'<text x="{tx}" y="{cy + 4}" fill="{HL if on else GREY}" font-size="11" '
-                 f'font-weight="{"bold" if on else "normal"}" text-anchor="{"start" if side == "left" else "end"}">'
+        tx = cx + (-13 if side == "left" else 13)      # labels outside the square
+        b.append(f'<text x="{tx}" y="{cy + 4}" fill="{HL if on else GREY}" font-size="12" '
+                 f'font-weight="{"bold" if on else "normal"}" text-anchor="{"end" if side == "left" else "start"}">'
                  f'{name}</text>')
     return _svg(w, h, "".join(b))
 
