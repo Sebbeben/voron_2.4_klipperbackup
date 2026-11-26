@@ -93,7 +93,7 @@ BED_MESH_CLEAR
 QUAD_GANTRY_LEVEL
 G28 Z
 BED_MESH_CALIBRATE              ; adaptive via KAMP (objects above)
-G1 Z5 F600
+G1 Z10 F600                     ; clear earlier test prints (max 6 mm) during the travel
 G1 X{purge_x0:.1f} Y{purge_y:.1f} F12000
 M109 S{temp}
 G1 Z0.5 F600
