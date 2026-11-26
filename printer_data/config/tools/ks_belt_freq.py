@@ -44,8 +44,9 @@ SPAN = 150.0
 # V2.4 size. Measured on this V2.4 350 with a ruler 2026-11-26: 150 mm at Y105 -> 45 mm.
 DEFAULT_SPAN_OFFSET = 45.0
 DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X axis (any bed size)
-# Z belts: gantry height for measuring (Z span grows with Z as well). Default until set on the
-# panel with a ruler - "Save Z" stores it in POS_FILE.
+# Z belts (Voron docs): raise the gantry until the fixed side of the belt is 150 mm from the Z idler
+# centres, ~140 Hz, all four equal. That height is not known until measured once with a ruler and
+# stored with "Save Z" - until then the panel does not move Z (DEFAULT_Z is only a jog start value).
 DEFAULT_Z = 60.0
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
@@ -254,7 +255,7 @@ class Panel(ScreenPanel):
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
             + f"A/B: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm (span = Y + {off:.0f}).  "
-            f"Z belts: <b>Z{z:.0f}</b>{'' if cal else ' (default)'}\n"
+            + (f"Z belts: <b>Z{z:.0f}</b>\n" if cal else "Z belts: <b>not set</b> - measure once\n")
             "The panel moves there automatically when you open a belt.\n"
             f"To change: jog until a ruler shows {SPAN:.0f} mm, then <b>Save Y</b> / <b>Save Z</b>.")
 
@@ -468,10 +469,14 @@ class Panel(ScreenPanel):
             where = f"X{x:.0f} Y{y:.0f} (span {y + load_offset():.0f} mm)"
         else:
             z, cal = load_z()
+            if not cal:
+                self.bt_info.set_markup(mk("Z measuring height not set: Setup pos -> jog Z until the fixed side is "
+                                           "150 mm from the Z idler centres -> Save Z. Measuring here.", color=ORANGE))
+                return after() if after else None
             if all(a in homed for a in "xyz") and pos[2] is not None and abs(pos[2] - z) < 0.5:
                 return after() if after else None
             script = ("" if all(a in homed for a in "xyz") else "G28\n") + f"G90\nG1 Z{z} F900\nM400"
-            where = f"Z{z:.0f}" + ("" if cal else " (default - set it under Setup pos)")
+            where = f"Z{z:.0f}"
         self.bt_info.set_markup(mk(f"Moving to {where} - listening starts when it stops", color=ORANGE))
         self._screen._ws.klippy.gcode_script(script, self._moved, after)
 
