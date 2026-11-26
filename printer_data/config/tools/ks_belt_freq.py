@@ -7,11 +7,12 @@
 # Views (Gtk.Stack):
 #   overview - saved values per belt (tap a belt to measure it), group spread/advice,
 #              Guided A/B, Measure pos, Setup pos
-#   belt     - one belt only, big: live Hz, TIGHTEN/LOOSEN/OK, median. Listening starts
-#              automatically (part fan + Nevermore off, restored when leaving)
+#   belt     - one belt only, big: live Hz, TIGHTEN/LOOSEN/OK, median. Opening a belt first moves
+#              to its measuring position (A/B: X/Y from POS_FILE, Z belts: gantry height), then
+#              listens (part fan + Nevermore off, restored when leaving)
 #   check    - guided A/B result after each round: adjust and re-measure, or move the gantry
 #              and re-check until two rounds in a row agree (belts settle after moving)
-#   setup    - jog Y and save the measuring position (150 mm span)
+#   setup    - jog Y/Z and save the measuring positions (150 mm span)
 # Target on a V2.4: A/B ~110 Hz over a 150 mm span, A/B within 2 Hz.
 # Z belts: Voron docs start at ~140 Hz; the four should match each other (within ~2 Hz).
 import json
