@@ -83,6 +83,7 @@ def start_gcode(bed, temp, purge_x0, purge_y, purge_len=60.0, obj_xy=None):
     """Home, QGL, Z home, adaptive mesh (KAMP, objects must be defined before), purge.
     Does not use PRINT_START (its fixed prime line would print on top of earlier ones)."""
     ox, oy = obj_xy if obj_xy else (purge_x0, purge_y + 10)
+    purge_e = purge_len * 0.5 / FIL_AREA        # 0.5 mm2 cross-section (limit 0.64)
     return f"""M140 S{bed}
 M104 S150                       ; warm, non-oozing nozzle for Tap
 SET_IDLE_TIMEOUT TIMEOUT=1800
@@ -101,7 +102,7 @@ G1 X{purge_x0:.1f} Y{purge_y:.1f} F12000
 M109 S{temp}
 G1 Z0.5 F600
 G1 E1.5 F1800                   ; undo PRINT_END/previous tip retract
-G1 X{purge_x0 + purge_len:.1f} E14 F1200    ; purge line
+G1 X{purge_x0 + purge_len:.1f} E{purge_e:.2f} F1200    ; purge line
 G1 X{purge_x0 + purge_len + 5:.1f} F6000     ; wipe (first travel of the test retracts)
 G1 Z1 F600
 """
