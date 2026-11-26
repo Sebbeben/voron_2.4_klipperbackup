@@ -37,7 +37,12 @@ AB = ("B", "A")
 # Fixed toolhead position for measuring, so every measurement uses the same belt span lengths.
 # Voron: A/B span 150 mm = X/Y-joint idler centres 150 mm from the front idler centres.
 POS_FILE = os.path.expanduser("~/printer_data/config/tools/belt_freq_pos.json")
-DEFAULT_POS = (175.0, 175.0)
+SPAN = 150.0
+# Front A/B span = toolhead Y + SPAN_OFFSET: the span grows 1:1 with Y. The offset is set by the
+# front idler and X/Y-joint idler positions relative to Y0/the nozzle - the same parts on every
+# V2.4 size. Measured on this V2.4 350 with a ruler 2026-11-26: 150 mm at Y105 -> 45 mm.
+DEFAULT_SPAN_OFFSET = 45.0
+DEFAULT_POS = (175.0, SPAN - DEFAULT_SPAN_OFFSET)
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
 
@@ -48,6 +53,14 @@ def load_pos():
         return float(d["x"]), float(d["y"])
     except (OSError, ValueError, KeyError):
         return DEFAULT_POS
+
+
+def load_offset():
+    try:
+        with open(POS_FILE) as f:
+            return float(json.load(f).get("span_offset", DEFAULT_SPAN_OFFSET))
+    except (OSError, ValueError, AttributeError):
+        return DEFAULT_SPAN_OFFSET
 
 
 def target_of(slot):
@@ -204,10 +217,12 @@ class Panel(ScreenPanel):
         else:
             if name == "setup":
                 x, y = load_pos()
+                off = load_offset()
                 self.su_info.set_markup(
-                    f"Saved measuring position: <b>X{x:.0f} Y{y:.0f}</b>\n"
-                    "Jog Y until the X/Y-joint idler centres are <b>150 mm</b> from the front idler "
-                    "centres (ruler), then <b>Save pos</b>.")
+                    f"Saved: <b>X{x:.0f} Y{y:.0f}</b> = span {y + off:.0f} mm   (span = Y + {off:.0f})\n"
+                    f"<b>{SPAN:.0f} mm</b> span is at <b>Y{SPAN - off:.0f}</b> - press Measure pos.\n"
+                    "To re-calibrate: jog until a ruler shows 150 mm between the front idler centres and "
+                    "the X/Y-joint idler centres, then <b>Save pos</b>.")
             self.stack.set_visible_child_name(name)
 
     def _show_overview(self, info=None):
@@ -217,8 +232,10 @@ class Panel(ScreenPanel):
             val = mk(f"{v:.1f} Hz", "large", self._color(v, k), True) if v else mk("tap to measure", "small", GREY)
             self.slot_btns[k].set_markup(f"{mk(k, big, bold=True)}\n{val}")
         self.ov_groups.set_markup(self._group(AB) + "\n" + self._group(("Z0", "Z1", "Z2", "Z3")))
-        self.ov_info.set_markup(info or f"A/B target <b>{TARGET:.0f} Hz</b> (150 mm span), within {MATCH:.0f} Hz "
-                                        f"of each other. Tap a belt, or use <b>Guided A/B</b>.")
+        y = load_pos()[1]
+        self.ov_info.set_markup(info or f"A/B target <b>{TARGET:.0f} Hz</b> at {y + load_offset():.0f} mm span "
+                                        f"(Measure pos Y{y:.0f}), within {MATCH:.0f} Hz of each other. "
+                                        f"Tap a belt, or use <b>Guided A/B</b>.")
         self.stack.set_visible_child_name("overview")
 
     # ---------- display helpers ----------
@@ -395,8 +412,9 @@ class Panel(ScreenPanel):
             return
         self._screen._ws.klippy.gcode_script(f"G91\nG1 Y{d} F3000\nG90")
         pos = self._printer.get_stat("toolhead", "position") or [0, 0]
-        self.su_info.set_markup(f"Y about <b>{pos[1] + d:.0f}</b>. Aim: X/Y idler centres 150 mm from the "
-                                f"front idler centres, then <b>Save pos</b>.")
+        y = pos[1] + d
+        self.su_info.set_markup(f"Y about <b>{y:.0f}</b> = span about <b>{y + load_offset():.0f} mm</b>.\n"
+                                f"If a ruler shows exactly {SPAN:.0f} mm here, press <b>Save pos</b>.")
 
     def save_measure_pos(self, widget):
         if not self._xy_homed():
@@ -408,8 +426,11 @@ class Panel(ScreenPanel):
             return
         try:
             with open(POS_FILE, "w") as f:
-                json.dump({"x": round(pos[0], 1), "y": round(pos[1], 1)}, f)
-            self.su_info.set_markup(f"Measuring position saved: <b>X{pos[0]:.1f} Y{pos[1]:.1f}</b>")
+                # Save pos means "the ruler shows SPAN here" -> also re-derive the offset
+                json.dump({"x": round(pos[0], 1), "y": round(pos[1], 1),
+                           "span_offset": round(SPAN - pos[1], 1)}, f)
+            self.su_info.set_markup(f"Saved: <b>X{pos[0]:.1f} Y{pos[1]:.1f}</b> = {SPAN:.0f} mm span "
+                                    f"(span = Y + {SPAN - pos[1]:.0f})")
         except OSError as e:
             self.su_info.set_text(f"Could not save: {e}")
 
