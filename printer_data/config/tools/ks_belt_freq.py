@@ -678,7 +678,7 @@ class Panel(ScreenPanel):
     def start(self):
         warm = self._fans_off()
         try:
-            self.proc = subprocess.Popen(["/usr/bin/python3", "-u", SCRIPT, "--live"],
+            self.proc = subprocess.Popen(["/usr/bin/python3", "-u", "/tmp/claude-1000/-home-voron/81b79479-9bfe-4a5f-8466-c9e16814101f/scratchpad/belt_demo.py"],  # TEMP UI TEST
                                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except OSError as e:
             self.bt_info.set_text(f"Could not start: {e}")
