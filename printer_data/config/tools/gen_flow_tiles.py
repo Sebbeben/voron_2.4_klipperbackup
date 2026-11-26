@@ -121,7 +121,7 @@ def square(x0, y0, size, flow, layer, wall_f, fill_f):
 for layer in range(1, a.layers + 1):
     z = H * layer
     w(f"; ---- layer {layer} z={z:.2f}")
-    w(f"G1 Z{z + 0.4:.2f} F1200")
+    w(f"G1 Z{z:.2f} F1200")
     if layer == 1:
         w("SET_VELOCITY_LIMIT ACCEL=500")
         wall_f = fill_f = 40 * 60
