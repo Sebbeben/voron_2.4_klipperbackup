@@ -38,6 +38,7 @@ AB = ("B", "A")
 # Voron: A/B span 150 mm = X/Y-joint idler centres 150 mm from the front idler centres.
 POS_FILE = os.path.expanduser("~/printer_data/config/tools/belt_freq_pos.json")
 DEFAULT_POS = (175.0, 175.0)
+DEMO = "/tmp/claude-1000/-home-voron/81b79479-9bfe-4a5f-8466-c9e16814101f/scratchpad/belt_demo.py"  # TEMP UI TEST HOOK - remove
 GREEN, ORANGE, GREY = "#4caf50", "#ff9800", "#9e9e9e"
 
 
@@ -80,7 +81,7 @@ class Panel(ScreenPanel):
         self.round = 0
         self.rounds = []           # guided: list of {"B": f, "A": f} per finished round
 
-        self.stack = Gtk.Stack()
+        self.stack = Gtk.Stack(vexpand=True)
         self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
         self.stack.add_named(self._build_overview(), "overview")
         self.stack.add_named(self._build_belt(), "belt")
@@ -131,7 +132,7 @@ class Panel(ScreenPanel):
         bottom.attach(self._btn("Guided A/B", "color3", self.start_guided), 0, 0, 1, 1)
         bottom.attach(self._btn("Measure pos", "color2", self.goto_measure_pos), 1, 0, 1, 1)
         bottom.attach(self._btn("Setup pos", "color2", self.show_view, "setup"), 2, 0, 1, 1)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         box.pack_start(self.ov_info, False, False, 0)
         box.pack_start(grid, False, False, 0)
         box.pack_start(self.ov_groups, True, True, 0)
@@ -151,7 +152,7 @@ class Panel(ScreenPanel):
         bottom.attach(self._btn("Clear", "color2", self.clear), 1, 0, 1, 1)
         bottom.attach(self.bt_save, 2, 0, 1, 1)
         bottom.attach(self._btn("Back", "color4", self.leave_belt), 3, 0, 1, 1)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, vexpand=True)
         box.pack_start(self.bt_title, False, False, 0)
         box.pack_start(self.bt_freq, True, True, 0)
         box.pack_start(self.bt_median, False, False, 0)
@@ -170,7 +171,7 @@ class Panel(ScreenPanel):
         bottom.attach(self.ck_adjust, 0, 0, 1, 1)
         bottom.attach(self.ck_move, 1, 0, 1, 1)
         bottom.attach(self._btn("Done", "color4", self.end_guided), 2, 0, 1, 1)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         box.pack_start(self.ck_title, False, False, 0)
         box.pack_start(self.ck_vals, True, True, 0)
         box.pack_start(self.ck_text, True, True, 0)
@@ -189,7 +190,7 @@ class Panel(ScreenPanel):
         bottom.attach(self._btn("Measure pos", "color2", self.goto_measure_pos), 0, 0, 1, 1)
         bottom.attach(self._btn("Save pos", "color1", self.save_measure_pos), 1, 0, 1, 1)
         bottom.attach(self._btn("Back", "color4", self.show_view, "overview"), 2, 0, 1, 1)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, vexpand=True)
         box.pack_start(self.su_info, True, True, 0)
         box.pack_start(jog, False, False, 0)
         box.pack_end(bottom, False, False, 0)
@@ -447,7 +448,10 @@ class Panel(ScreenPanel):
     def start(self):
         warm = self._fans_off()
         try:
-            self.proc = subprocess.Popen(["/usr/bin/python3", "-u", SCRIPT, "--live"],
+            cmd = ["/usr/bin/python3", "-u", SCRIPT, "--live"]
+            if os.path.exists(DEMO):  # TEMP UI TEST HOOK - remove
+                cmd = ["/usr/bin/python3", "-u", DEMO]
+            self.proc = subprocess.Popen(cmd,
                                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except OSError as e:
             self.bt_info.set_text(f"Could not start: {e}")
