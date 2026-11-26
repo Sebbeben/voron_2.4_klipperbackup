@@ -110,6 +110,9 @@ Config changes (backup of the old files kept locally):
 - Added `fan_upgrade.cfg` (inactive)
 
 ## TODO
+- **Tomorrow (2026-11-27) - check on the plate:** flow tiles 0.88-1.02 (front centre), max flow 250 C (front right) and 260 C (right of centre, rear), retraction 0.2-1.2 mm (left edge; look for a duct mark on the towers nearest the centre), fine PA 0.03-0.06 (left rear), temperature tower 265->235 C (rear centre). Photos; then PA to Klipper, flow/max flow/retraction/temp to the Orca profiles; reset tools/bed_layout.json once the plate is cleared.
+- **Belt panel on real belts:** try the new views (one belt per screen, sketches, auto-move, guided A/B), check B=left / A=right and the "fixed" Z side in the sketches, and whether the signal meter (Signal/noise) and tips match how plucking feels. Measure the Z height for a 150 mm Z span once and press Save Z.
+- **Pi temperature:** 81-83 C and throttling with both camera streams + WebRTC viewers (Orca device tab, Edge). Lower camera fps and/or Pi cooling.
 - **Klipper local patch:** `klippy/mcu.py` TRSYNC_TIMEOUT 0.025 -> 0.050 (2026-11-26, Tap over CAN timed out during homing). Reapply after every Klipper update.
 Status 2026-11-18: **printer parked** until new A/B motors arrive. Sensorless X/Y homing fails with TMC `uv_cp` (Undervoltage) - traced to the **motor B (stepper_x)**, see "A/B motor fault" below. Do not print until the motors are replaced.
 

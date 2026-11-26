@@ -4,7 +4,10 @@ Voron 2.4 conventions used (seen from the front):
   B belt = left front span, A belt = right front span (front idler -> X/Y-joint idler).
   Z0 front-left, Z1 rear-left, Z2 rear-right, Z3 front-right (stepper_z ... stepper_z3).
 Z belts (Voron docs): fixed side of the belt, 150 mm from the Z idler centres.
-Drawn schematic, not to exact scale.
+Sides: Voron config template "X-MOT (B Motor) Left" / "Y-MOT (A Motor) Right"; each motor's belt runs
+to the front idler on its own side, so the left front span is B, the right one A.
+Mic symbol: where to put a movable microphone (camera mic or belt sensor) - next to the middle of
+the span, a few cm away, not touching the belt. Drawn schematic, not to exact scale.
 """
 
 HL = "#ff9800"        # belt being measured
@@ -33,6 +36,18 @@ def _dim_v(x, y1, y2, label, side=1, dy=0):
             f'text-anchor="{anchor}">{label}</text>')
 
 
+MIC = "#ce93d8"
+
+
+def _mic(x, y, side=1, label="mic here"):
+    """Microphone symbol (capsule + stand) with a label; side = which way the label goes."""
+    anchor = "start" if side > 0 else "end"
+    return (f'<rect x="{x - 6}" y="{y - 12}" width="12" height="18" rx="6" fill="none" stroke="{MIC}" stroke-width="2.5"/>'
+            f'<path d="M{x - 10},{y} a10,10 0 0,0 20,0" fill="none" stroke="{MIC}" stroke-width="2"/>'
+            f'<line x1="{x}" y1="{y + 10}" x2="{x}" y2="{y + 15}" stroke="{MIC}" stroke-width="2"/>'
+            f'<text x="{x + side * 14}" y="{y + 2}" fill="{MIC}" font-size="12" text-anchor="{anchor}">{label}</text>')
+
+
 def _pluck(x, y, side=1):
     """Arrow pointing at the belt + 'pluck'."""
     x0 = x + side * 46
@@ -44,7 +59,7 @@ def _pluck(x, y, side=1):
             f'text-anchor="{anchor}">pluck</text>')
 
 
-def ab_sketch(which, w=260, h=290):
+def ab_sketch(which, w=260, h=290, mic=True):
     """Top view. which: 'B', 'A' or 'both' (setup view)."""
     L, R, T, F = 34, w - 34, 26, h - 38          # frame inner lines (belt x positions, rear, front idlers)
     jy = F - 120                                 # X/Y joints at the measuring position (150 mm span)
@@ -71,6 +86,8 @@ def ab_sketch(which, w=260, h=290):
         b.append(_dim_v(x + s * 22, jy, F, "150" if both else "150 mm", s, 0 if both else 30))
         if not both:
             b.append(_pluck(x, (jy + F) / 2, s))           # pluck in the middle of the span
+            if mic:
+                b.append(_mic(x + s * 22, (jy + F) / 2 - 34, s))  # movable mic: next to mid-span
     b.append(f'<text x="{w / 2}" y="{h - 6}" fill="{GREY}" font-size="14" text-anchor="middle">FRONT</text>')
     b.append(f'<text x="{L}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>'
              f'<text x="{R}" y="{F + 26}" fill="{GREY}" font-size="11" text-anchor="middle">idler</text>')
@@ -79,7 +96,7 @@ def ab_sketch(which, w=260, h=290):
     return _svg(w, h, "".join(b))
 
 
-def z_sketch(slot, w=260, h=290):
+def z_sketch(slot, w=260, h=290, mic=True):
     """Side view of one Z drive + mini top view with the corner. slot: 'Z0'..'Z3' or None (setup)."""
     b = []
     bx, iy = 70, h - 46                 # strand x (fixed side), Z idler centre y
@@ -99,6 +116,8 @@ def z_sketch(slot, w=260, h=290):
     b.append(f'<text x="{bx - 28}" y="{(gy + iy) / 2 + 58}" fill="{DIM}" font-size="13" text-anchor="end">mm</text>')
     b.append(f'<text x="{bx - 6}" y="{gy + 18}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
     b.append(_pluck(bx, (gy + iy) / 2, 1) if slot else "")      # middle of the span
+    if slot and mic:
+        b.append(_mic(bx + 58, (gy + iy) / 2 - 40, 1))
     # mini top view with the four Z corners
     mx, my, ms = w - 100, 22, 56
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
@@ -116,10 +135,10 @@ def z_sketch(slot, w=260, h=290):
     return _svg(w, h, "".join(b))
 
 
-def sketch(slot, w=260, h=290):
+def sketch(slot, w=260, h=290, mic=True):
     if slot in ("A", "B", "both"):
-        return ab_sketch(slot, w, h)
-    return z_sketch(slot, w, h)
+        return ab_sketch(slot, w, h, mic)
+    return z_sketch(slot, w, h, mic)
 
 
 if __name__ == "__main__":       # write preview SVGs: python3 ks_belt_sketch.py OUTDIR
