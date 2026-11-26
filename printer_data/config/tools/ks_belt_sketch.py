@@ -121,7 +121,7 @@ def z_sketch(slot, w=260, h=290, mic=True):
         b.append(f'<text x="{bx + 16}" y="{(gy + iy) / 2 + 30}" fill="{MIC}" font-size="12" '
                  f'text-anchor="middle">mic</text>')
     # mini top view with the four Z corners
-    mx, my, ms = w - 100, 22, 56
+    mx, my, ms = w - 74, 20, 44
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
     b.append(f'<text x="{mx + ms / 2}" y="{my + ms + 22}" fill="{GREY}" font-size="11" text-anchor="middle">front</text>')
     for name, (fr, side) in Z_CORNERS.items():
