@@ -23,6 +23,9 @@ MAX_REMOTE_HEIGHT = 6.0
 DUCT_CLEARANCE = 35.0
 LOW_HEIGHT = 1.5
 
+# Points where Tap probes down to the bed: QGL corners and the Z home (bed centre)
+PROBE_POINTS = [(50, 25), (50, 275), (300, 275), (300, 25), (175, 175)]
+
 # Keep-out rectangles (x0, y0, x1, y1)
 KEEP_OUT = [
     (50 - 18, 25 - 18, 50 + 18, 25 + 18),       # QGL points (probe offset 0)
@@ -67,6 +70,10 @@ def find_spot(w, h, height, margin=5.0):
     """First free (x0, y0) for a w x h footprint, scanning front-left to rear-right.
     Tall neighbours (or a tall new test) need DUCT_CLEARANCE instead of margin."""
     used = []
+    if height > LOW_HEIGHT:          # the duct comes down to the bed at every probe point
+        for px, py in PROBE_POINTS:
+            c = DUCT_CLEARANCE - margin
+            used.append((px - c, py - c, px + c, py + c))
     for r in load_layout():
         m = DUCT_CLEARANCE if max(r.get("height", MAX_REMOTE_HEIGHT), height) > LOW_HEIGHT else margin
         x0, y0, x1, y1 = r["rect"]
