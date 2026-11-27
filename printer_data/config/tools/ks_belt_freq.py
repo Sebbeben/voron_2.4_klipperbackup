@@ -16,10 +16,12 @@
 # Target on a V2.4: A/B ~110 Hz over a 150 mm span, A/B within 2 Hz.
 # Z belts: Voron docs start at ~140 Hz; the four should match each other (within ~2 Hz).
 import json
+import logging
 import os
 import signal
 import statistics
 import subprocess
+import time
 
 import sys
 
