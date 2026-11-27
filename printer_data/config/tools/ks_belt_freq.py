@@ -61,7 +61,7 @@ DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X ax
 # 150 mm is left between the gantry clamp and the top idler (ruler, 2026-11-27: Z225 on this V2.4 350).
 # "Save Z" stores another height; the target stays 140 Hz. Clamped to the stepper_z limits.
 DEFAULT_Z = 225.0
-Z_BAND = (0.8, 1.8)       # Z listening band (x target) = 112-252 Hz: 82 Hz hum and 2nd harmonic outside
+Z_BAND = (0.6, 1.8)       # Z listening band (x target) = 84-252 Hz: reads loose belts down to 84, 82 Hz hum outside
 # Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
 # under 20 dB are not used. LEVEL is the background level in dBFS.
 SNR_OK, SNR_GOOD = 20.0, 30.0
