@@ -64,7 +64,7 @@ DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X ax
 # "Save Z" stores another measuring height; Z_SPAN_OFFSET can be overridden as "z_span_offset" in POS_FILE.
 DEFAULT_Z = 120.0
 Z_SPAN_OFFSET = 90.0       # span (mm) = Z + 90: 150 mm at Z60, measured on this printer
-Z_BAND = (0.82, 1.8)      # Z listening band as factors of the target (keeps the 2nd harmonic out)
+Z_BAND = (0.86, 1.8)      # Z listening band as factors of the target: above the 82 Hz hum at 100 Hz, 2nd harmonic out
 # Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
 # under 20 dB are not used. LEVEL is the background level in dBFS.
 SNR_OK, SNR_GOOD = 20.0, 30.0
