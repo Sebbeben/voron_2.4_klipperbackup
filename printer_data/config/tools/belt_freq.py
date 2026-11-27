@@ -26,6 +26,15 @@ import numpy as np
 
 DEVICE = "plughw:CARD=Camera,DEV=0"
 RATE = 16000
+# The camera mic must be opened at its native 48 kHz: asking the hardware for 16 kHz crashed the
+# camera (USB disconnect ~1 s later, 2026-11-27). ffmpeg reads 48 kHz and resamples to RATE.
+HW_RATE = 48000
+
+
+def alsa_cmd(extra):
+    """ffmpeg reading the camera mic at HW_RATE, output mono RATE (extra = output args)."""
+    return ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "alsa", "-ac", "1", "-ar", str(HW_RATE),
+            "-i", DEVICE, "-ac", "1", "-ar", str(RATE)] + extra
 # Fallbacks when the ALSA device is busy. The mic is busy because a go2rtc stream is using it:
 # usually "usbcam" (video + audio for a WebRTC viewer) - its audio track can be shared with ?audio.
 # A separate "usbcam_audio" cannot open the busy mic then (go2rtc answers 404), so it comes second.
@@ -75,8 +84,7 @@ def fans_off():
 
 
 def record(seconds, path):
-    cmd = ["arecord", "-q", "-D", DEVICE, "-f", "S16_LE", "-c", "1", "-r", str(RATE),
-           "-d", str(seconds), path]
+    cmd = alsa_cmd(["-t", str(seconds), "-y", path])
     print(f"Recording {seconds} s - pluck the belt now ...", flush=True)
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode == 0:
@@ -143,7 +151,7 @@ def live(fmin, fmax, max_seconds):
     Used by the KlipperScreen panel (tools/ks_belt_freq.py)."""
     import signal
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-    arec = ["arecord", "-q", "-D", DEVICE, "-f", "S16_LE", "-c", "1", "-r", str(RATE), "-t", "raw"]
+    arec = alsa_cmd(["-f", "s16le", "-"])
     # The previous listener (Stop -> Start, switching belts) may still hold the device for a moment:
     # retry ALSA a few times before falling back to the go2rtc stream.
     for attempt in range(4):
