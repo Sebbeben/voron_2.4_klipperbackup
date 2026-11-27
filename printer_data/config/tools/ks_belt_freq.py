@@ -45,6 +45,9 @@ AB = ("B", "A")
 # Fixed toolhead position for measuring, so every measurement uses the same belt span lengths.
 # Voron: A/B span 150 mm = X/Y-joint idler centres 150 mm from the front idler centres.
 POS_FILE = os.path.expanduser("~/printer_data/config/tools/belt_freq_pos.json")
+# Saved measurements survive closing the panel: last value per belt + a short history (newest last).
+RESULTS_FILE = os.path.expanduser("~/printer_data/config/tools/belt_freq_results.json")
+RESULTS_HISTORY = 100
 SPAN = 150.0
 # Front A/B span = toolhead Y + SPAN_OFFSET: the span grows 1:1 with Y. The offset is set by the
 # front idler and X/Y-joint idler positions relative to Y0/the nozzle - the same parts on every
@@ -82,6 +85,30 @@ def load_z():
             return float(json.load(f)["z"]), True
     except (OSError, ValueError, KeyError, TypeError):
         return DEFAULT_Z, False
+
+
+def load_results():
+    """Last saved frequency per belt slot from RESULTS_FILE ({slot: {"hz": .., "time": ..}})."""
+    try:
+        with open(RESULTS_FILE) as f:
+            return json.load(f).get("last", {})
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def save_result(slot, hz):
+    try:
+        with open(RESULTS_FILE) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        d = {}
+    entry = {"hz": round(hz, 1), "time": time.strftime("%Y-%m-%d %H:%M")}
+    d.setdefault("last", {})[slot] = entry
+    d["history"] = (d.get("history", []) + [dict(entry, slot=slot)])[-RESULTS_HISTORY:]
+    tmp = RESULTS_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(d, f, indent=1)
+    os.replace(tmp, RESULTS_FILE)
 
 
 def save_pos_file(**kw):
@@ -127,6 +154,9 @@ class Panel(ScreenPanel):
         self.partial = ""
         self.plucks = []
         self.saved = {k: None for k in SLOTS}
+        for k, v in load_results().items():       # last saved values, also after closing the panel
+            if k in self.saved and isinstance(v, dict) and v.get("hz"):
+                self.saved[k] = float(v["hz"])
         self.fan_restore = []
         self.last_msg = ""         # last non-protocol line from belt_freq.py (errors)
         self.level = None          # background level (dBFS) while listening
@@ -425,6 +455,10 @@ class Panel(ScreenPanel):
             return
         k = self.current
         self.saved[k] = statistics.median(good)
+        try:
+            save_result(k, self.saved[k])
+        except OSError as e:
+            logging.warning(f"belt_freq: could not save result: {e}")
         if self.proc:
             self.stop()
         if self.guided:
