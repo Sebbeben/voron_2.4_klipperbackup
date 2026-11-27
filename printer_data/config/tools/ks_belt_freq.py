@@ -354,11 +354,9 @@ class Panel(ScreenPanel):
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
             + f"A/B: <b>Y{y:.0f}</b> (X{x:.0f}) = {y + off:.0f} mm\n"
-            + f"Z: <b>Z{z:.0f}</b> ({'saved' if cal else 'standard'}) = {z_span(z):.0f} mm span"
-            + f" -> target <b>{target_of('Z0'):.0f} Hz</b>\n"
-            + "Moves there by itself when a belt is opened.\n"
-            + f"Change: A/B jog until the ruler shows <b>{SPAN:.0f} mm</b>, then <b>Save Y</b>. "
-            + "Z: any height where the belt is easy to reach, <b>Save Z</b> - the target follows.")
+            + f"Z: <b>Z{z:.0f}</b> = {z_span(z):.0f} mm -> <b>{target_of('Z0'):.0f} Hz</b>"
+            + f" ({'saved' if cal else 'standard'})\n"
+            + f"Y: jog to <b>{SPAN:.0f} mm</b>, Save Y. Z: any easy height, Save Z.")
 
     def _show_overview(self, info=None):
         for k in SLOTS:
