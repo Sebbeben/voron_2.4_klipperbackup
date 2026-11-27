@@ -1,68 +1,46 @@
 [
  {
-  "name": "flow_tiles_r3d_abs.gcode",
+  "name": "1_flow_tiles.gcode",
   "rect": [
    75.0,
    20.0,
    232.0,
    113.0
   ],
-  "time": "2026-11-26 15:38",
-  "height": 1.0
+  "height": 1.0,
+  "time": "2026-11-27 08:17"
  },
  {
-  "name": "max_flow_r3d_abs.gcode",
-  "rect": [
-   240.0,
-   50.0,
-   305.6,
-   121.6
-  ],
-  "time": "2026-11-26 16:20",
-  "height": 5.6
- },
- {
-  "name": "1_retract_250.gcode",
+  "name": "2_pa_fine.gcode",
   "rect": [
    15.0,
-   50.0,
-   64.0,
-   144.0
-  ],
-  "time": "2026-11-26 17:04",
-  "height": 5.8
- },
- {
-  "name": "2_max_flow_260.gcode",
-  "rect": [
-   210.0,
-   160.0,
-   275.6,
-   231.6
-  ],
-  "height": 5.65,
-  "time": "2026-11-26 17:22"
- },
- {
-  "name": "3_pa_fine_150mms.gcode",
-  "rect": [
-   15.0,
-   180.0,
+   120.0,
    122.0,
-   250.0
+   190.0
   ],
   "height": 0.25,
-  "time": "2026-11-26 17:22"
+  "time": "2026-11-27 08:17"
  },
  {
-  "name": "temp_tower_r3d_abs.gcode",
+  "name": "3_retract.gcode",
+  "rect": [
+   270.0,
+   60.0,
+   319.0,
+   154.0
+  ],
+  "height": 5.6,
+  "time": "2026-11-27 08:17"
+ },
+ {
+  "name": "4_max_flow_250.gcode",
   "rect": [
    160.0,
-   270.0,
    210.0,
-   293.0
+   225.6,
+   281.6
   ],
-  "height": 35.0,
-  "time": "2026-11-26 17:46"
+  "height": 5.65,
+  "time": "2026-11-27 08:17"
  }
 ]
