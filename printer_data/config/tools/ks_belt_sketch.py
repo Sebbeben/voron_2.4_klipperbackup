@@ -3,8 +3,8 @@
 Voron 2.4 conventions used (seen from the front):
   B belt = left front span, A belt = right front span (front idler -> X/Y-joint idler).
   Z0 front-left, Z1 rear-left, Z2 rear-right, Z3 front-right (stepper_z ... stepper_z3).
-Z belts (Voron docs): fixed side of the belt, 140 Hz at 150 mm from the Z idler centres. The panel
-measures with the gantry higher (easier to reach) and scales the target; z_span = the span length shown.
+Z belts (Voron docs): fixed side of the belt, ~140 Hz with 150 mm free. Here measured from above:
+150 mm between the top idler centre and the gantry clamp (gantry raised).
 Sides: Voron config template "X-MOT (B Motor) Left" / "Y-MOT (A Motor) Right"; each motor's belt runs
 to the front idler on its own side, so the left front span is B, the right one A.
 Mic symbol: where to put a movable microphone (camera mic or belt sensor) - next to the middle of
@@ -98,31 +98,32 @@ def ab_sketch(which, w=260, h=290, mic=True):
 
 
 def z_sketch(slot, w=260, h=290, mic=True, z_span=150):
-    """Side view of one Z drive + mini top view with the corner. slot: 'Z0'..'Z3' or None (setup)."""
+    """Side view of one Z belt: top idler above, gantry clamp below (belt measured from above),
+    + mini top view with the corner. slot: 'Z0'..'Z3' or None (setup)."""
     b = []
-    bx, iy = 104, h - 46                # strand x (fixed side), Z idler centre y
-    gy = iy - 150                       # gantry clamp at 150 mm (schematic)
-    # Z drive unit
-    b.append(f'<rect x="{bx - 30}" y="{iy - 16}" width="92" height="40" rx="4" fill="#2b3338" stroke="{FRAME}"/>')
-    b.append(f'<text x="{bx + 16}" y="{iy + 38}" fill="{GREY}" font-size="11" text-anchor="middle">Z drive / idler</text>')
+    bx, iy = 104, 40                    # strand x (fixed side), top idler centre y
+    gy = iy + 160                       # gantry clamp (150 mm span, schematic)
+    # top idler block
+    b.append(f'<rect x="{bx - 22}" y="{iy - 22}" width="76" height="34" rx="4" fill="#2b3338" stroke="{FRAME}"/>')
     b.append(f'<circle cx="{bx}" cy="{iy}" r="9" fill="#2b3338" stroke="{TEXT}" stroke-width="2"/>')
     b.append(f'<circle cx="{bx + 32}" cy="{iy}" r="9" fill="#2b3338" stroke="{TEXT}" stroke-width="2"/>')
+    b.append(f'<text x="{bx + 16}" y="{iy - 28}" fill="{GREY}" font-size="11" text-anchor="middle">top idler</text>')
     # gantry clamp
-    b.append(f'<rect x="{bx - 24}" y="{gy - 26}" width="80" height="22" rx="3" fill="#3a444a" stroke="{FRAME}"/>')
-    b.append(f'<text x="{bx + 16}" y="{gy - 32}" fill="{GREY}" font-size="11" text-anchor="middle">gantry</text>')
-    # strands: fixed side highlighted, other side grey
-    b.append(f'<line x1="{bx + 32}" y1="{iy - 9}" x2="{bx + 32}" y2="{gy - 4}" stroke="{BELT}" stroke-width="3"/>')
-    b.append(f'<line x1="{bx}" y1="{iy - 9}" x2="{bx}" y2="{gy - 4}" stroke="{HL}" stroke-width="7"/>')
-    b.append(_dim_v(bx + 54, gy, iy, f"{z_span:.0f}", 1, 0))
+    b.append(f'<rect x="{bx - 24}" y="{gy + 4}" width="80" height="22" rx="3" fill="#3a444a" stroke="{FRAME}"/>')
+    b.append(f'<text x="{bx + 16}" y="{gy + 42}" fill="{GREY}" font-size="11" text-anchor="middle">gantry</text>')
+    # strands: fixed side highlighted, other side grey (continues down past the gantry)
+    b.append(f'<line x1="{bx + 32}" y1="{iy + 9}" x2="{bx + 32}" y2="{h - 10}" stroke="{BELT}" stroke-width="3"/>')
+    b.append(f'<line x1="{bx}" y1="{iy + 9}" x2="{bx}" y2="{gy + 4}" stroke="{HL}" stroke-width="7"/>')
+    b.append(_dim_v(bx + 54, iy, gy, f"{z_span:.0f}", 1, 0))
     b.append(f'<text x="{bx + 62}" y="{(gy + iy) / 2 + 24}" fill="{DIM}" font-size="13" text-anchor="start">mm</text>')
-    b.append(f'<text x="{bx - 6}" y="{gy + 18}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
+    b.append(f'<text x="{bx - 6}" y="{gy - 6}" fill="{HL}" font-size="11" text-anchor="end">fixed</text>')
     b.append(_pluck(bx, (gy + iy) / 2, -1) if slot else "")     # middle of the span, from the left
     if slot and mic:   # between the strands, at mid-span; label below
         b.append(_mic(bx + 16, (gy + iy) / 2, 1, ""))
         b.append(f'<text x="{bx + 16}" y="{(gy + iy) / 2 + 30}" fill="{MIC}" font-size="12" '
                  f'text-anchor="middle">mic</text>')
     # mini top view with the four Z corners
-    mx, my, ms = w - 74, 20, 44
+    mx, my, ms = w - 74, h - 80, 44
     b.append(f'<rect x="{mx}" y="{my}" width="{ms}" height="{ms}" fill="none" stroke="{FRAME}" stroke-width="2"/>')
     b.append(f'<text x="{mx + ms / 2}" y="{my + ms + 22}" fill="{GREY}" font-size="11" text-anchor="middle">front</text>')
     for name, (fr, side) in Z_CORNERS.items():
