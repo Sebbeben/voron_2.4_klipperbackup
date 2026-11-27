@@ -19,6 +19,7 @@ import argparse
 import subprocess
 import sys
 import tempfile
+import time
 import wave
 
 import numpy as np
