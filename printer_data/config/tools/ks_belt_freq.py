@@ -56,15 +56,12 @@ SPAN = 150.0
 # V2.4 size. Measured on this V2.4 350 with a ruler 2026-11-26: 150 mm at Y105 -> 45 mm.
 DEFAULT_SPAN_OFFSET = 45.0
 DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X axis (any bed size)
-# Z belts (Voron docs): 140 Hz with 150 mm of the fixed side between Z idler centre and gantry.
-# That height (~Z15 on this V2.4 350) puts the span below the bed edge, hard to reach at the rear, so the panel measures with the gantry higher and scales the
-# target: same tension, f ~ 1/span  ->  target = 140 * 150 / span,  span = Z + Z_SPAN_OFFSET.
-# Standard Z200 (gantry high, belt reached from above): span 335 mm -> 63 Hz. The listening band is
-# kept narrow (Z_BAND) so the ~82 Hz ambient hum and the 2nd harmonic both stay outside it.
-# "Save Z" stores another measuring height; Z_SPAN_OFFSET can be overridden as "z_span_offset" in POS_FILE.
-DEFAULT_Z = 200.0
-Z_SPAN_OFFSET = 135.0      # span (mm) = Z + 135: ruler 255 mm at Z120.2 (Z homed) on this printer, 2026-11-27
-Z_BAND = (0.8, 1.2)       # Z listening band (x target): at Z200 = 50-75 Hz, below the 82 Hz hum, 2nd harmonic out
+# Z belts (Voron docs): ~140 Hz with 150 mm of free belt, all four equal. On this printer the belt
+# runs from the gantry clamp UP to the top idler, so it is measured from above: raise the gantry until
+# 150 mm is left between the gantry clamp and the top idler (ruler, 2026-11-27: Z225 on this V2.4 350).
+# "Save Z" stores another height; the target stays 140 Hz. Clamped to the stepper_z limits.
+DEFAULT_Z = 225.0
+Z_BAND = (0.8, 1.8)       # Z listening band (x target) = 112-252 Hz: 82 Hz hum and 2nd harmonic outside
 # Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
 # under 20 dB are not used. LEVEL is the background level in dBFS.
 SNR_OK, SNR_GOOD = 20.0, 30.0
@@ -92,19 +89,6 @@ def load_z():
             return float(json.load(f)["z"]), True
     except (OSError, ValueError, KeyError, TypeError):
         return DEFAULT_Z, False
-
-
-def load_z_span_offset():
-    try:
-        with open(POS_FILE) as f:
-            return float(json.load(f)["z_span_offset"])
-    except (OSError, ValueError, KeyError, TypeError):
-        return Z_SPAN_OFFSET
-
-
-def z_span(z=None):
-    """Free span (mm) of the fixed Z belt side at gantry height z (default: measuring height)."""
-    return (load_z()[0] if z is None else z) + load_z_span_offset()
 
 
 def load_results():
@@ -151,9 +135,7 @@ def load_offset():
 
 
 def target_of(slot):
-    if slot.startswith("Z"):
-        return Z_TARGET * SPAN / max(z_span(), 50.0)
-    return TARGET
+    return Z_TARGET if slot.startswith("Z") else TARGET
 
 
 def mk(text, size=None, color=None, bold=False):
@@ -216,7 +198,7 @@ class Panel(ScreenPanel):
             loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
             loader.connect("size-prepared", lambda ld, w0, h0: ld.set_size(*(
                 (w, round(h0 * w / w0)) if w0 * h >= h0 * w else (round(w0 * h / h0), h))))
-            loader.write(ks_belt_sketch.sketch(slot, z_span=z_span()))
+            loader.write(ks_belt_sketch.sketch(slot))
             loader.close()
             image.set_from_pixbuf(loader.get_pixbuf())
         except Exception as e:  # a missing SVG loader must not break the panel
@@ -354,9 +336,8 @@ class Panel(ScreenPanel):
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
             + f"A/B: <b>Y{y:.0f}</b> (X{x:.0f}) = {y + off:.0f} mm\n"
-            + f"Z: <b>Z{z:.0f}</b> = {z_span(z):.0f} mm -> <b>{target_of('Z0'):.0f} Hz</b>"
-            + f" ({'saved' if cal else 'standard'})\n"
-            + f"Y: jog to <b>{SPAN:.0f} mm</b>, Save Y. Z: any easy height, Save Z.")
+            + f"Z: <b>Z{z:.0f}</b> ({'saved' if cal else 'standard'}) = {SPAN:.0f} mm to the top idler\n"
+            + f"Change: jog until the ruler shows <b>{SPAN:.0f} mm</b>, then <b>Save Y</b> / <b>Save Z</b>.")
 
     def _show_overview(self, info=None):
         for k in SLOTS:
