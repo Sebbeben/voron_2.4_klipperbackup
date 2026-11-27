@@ -143,11 +143,19 @@ def live(fmin, fmax, max_seconds):
     import signal
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     arec = ["arecord", "-q", "-D", DEVICE, "-f", "S16_LE", "-c", "1", "-r", str(RATE), "-t", "raw"]
-    proc = subprocess.Popen(arec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    first = proc.stdout.read(3200)
+    # The previous listener (Stop -> Start, switching belts) may still hold the device for a moment:
+    # retry ALSA a few times before falling back to the go2rtc stream.
+    for attempt in range(4):
+        proc = subprocess.Popen(arec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        first = proc.stdout.read(3200)
+        if len(first) >= 3200:
+            break
+        alsa_err = proc.stderr.read().decode(errors="replace").strip()
+        proc.kill()
+        time.sleep(0.8)
     src = "alsa"
     if len(first) < 3200:  # ALSA busy -> go2rtc
-        proc.kill()
+        print("ALSA: " + (alsa_err.splitlines()[-1][:80] if alsa_err else "no data"), file=sys.stderr, flush=True)
         for url in GO2RTC_AUDIO_URLS:
             ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-stimeout", "5000000",  # ffmpeg 4.3: 5 s socket timeout
                "-i", url,
