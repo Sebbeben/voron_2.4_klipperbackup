@@ -35,7 +35,7 @@
         "8"
     ],
     "filament_max_volumetric_speed": [
-        "15"
+        "18"
     ],
     "close_fan_the_first_x_layers": [
         "3"
@@ -62,9 +62,9 @@
         "110"
     ],
     "filament_flow_ratio": [
-        "0.92"
+        "0.99"
     ],
-    "filament_notes": "Home power monitor enclosure test prints. = 'ABS @Voron 2.4 350 Rapido' (250/255 C, bed 105/110, flow 0.92, max 15 mm3/s) + XY shrink compensation 99.5 % and fan 10-30 % (off for 3 layers). Overhang/bridge fan kept at 60 % for the latch bridges. With the temporary V6 nozzle lower max volumetric speed to ~10.",
+    "filament_notes": "Home power monitor enclosure test prints. = 'ABS @Voron 2.4 350 Rapido' (250/255 C, bed 105/110, flow 0.99, max 18 mm3/s (calibrated 2026-11-27)) + XY shrink compensation 99.5 % and fan 10-30 % (off for 3 layers). Overhang/bridge fan kept at 60 % for the latch bridges. With the temporary V6 nozzle lower max volumetric speed to ~10.",
     "filament_shrink": [
         "99.5%"
     ]

@@ -35,7 +35,7 @@
         "8"
     ],
     "filament_max_volumetric_speed": [
-        "15"
+        "18"
     ],
     "close_fan_the_first_x_layers": [
         "3"
@@ -62,7 +62,10 @@
         "110"
     ],
     "filament_flow_ratio": [
-        "0.92"
+        "0.99"
     ],
-    "filament_notes": "Main material. 250 C (was 240 in Cura - too cold for the flow it was asked for). Enclosure closed, heat soak. Max volumetric speed is a SAFE START value for the Rapido HF (temporary V6 nozzle is lower!) - raise it after the Orca max-flow test. Flow ratio 0.92 copies the old Cura value until extruder rotation_distance is calibrated."
+    "filament_notes": "Main material. Calibrated 2026-11-27 with R3D ABS black on the Rapido HF 0.4 (after Orbiter tension fix + rotation_distance 4.703): 250 C (temp tower 265-235: 245-255 best, 260+ rough overhangs), flow ratio 0.99 (tiles 0.88-1.02), retraction 0.5 mm (0.2 strings, 0.4+ clean), max volumetric 18 mm3/s (in-air feed test: 20 -> 97 %, 24 -> 94 %, 28 skips; use ~22 at 260 C). Pressure advance 0.045 is set in Klipper printer.cfg, not here. Fine wisps on travel = dry the filament (DRY_ABS).",
+    "filament_retraction_length": [
+        "0.5"
+    ]
 }
