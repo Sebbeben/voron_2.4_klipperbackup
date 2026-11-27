@@ -704,9 +704,7 @@ class Panel(ScreenPanel):
         self._update_belt()
 
     def _z_note(self):
-        """Reminder shown while measuring a Z belt without a saved measuring height."""
-        if self.current and self.current.startswith("Z") and not load_z()[1]:
-            return " - Z height not set (Setup pos -> Save Z)"
+        """No reminder any more: Z belts use the standard height (DEFAULT_Z) unless another one is saved."""
         return ""
 
     def start(self):
