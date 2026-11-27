@@ -57,8 +57,8 @@ SPAN = 150.0
 DEFAULT_SPAN_OFFSET = 45.0
 DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X axis (any bed size)
 # Z belts (Voron docs): raise the gantry until the fixed side of the belt is 150 mm from the Z idler
-# centres, ~140 Hz, all four equal. That height is not known until measured once with a ruler and
-# stored with "Save Z" - until then the panel does not move Z (DEFAULT_Z is only a jog start value).
+# centres, ~140 Hz, all four equal. Standard height Z60 (checked with a ruler on this V2.4 350,
+# 2026-11-27: all four Z belts right there); "Save Z" stores another height. Clamped to stepper_z limits.
 DEFAULT_Z = 60.0
 # Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
 # under 20 dB are not used. LEVEL is the background level in dBFS.
@@ -334,7 +334,7 @@ class Panel(ScreenPanel):
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
             + f"A/B: <b>Y{y:.0f}</b> (X{x:.0f}) = {y + off:.0f} mm\n"
-            + (f"Z: <b>Z{z:.0f}</b>\n" if cal else "Z: <b>not set</b> - measure once\n")
+            + f"Z: <b>Z{z:.0f}</b> ({'saved' if cal else 'standard'})\n"
             + "Moves there by itself when a belt is opened.\n"
             + f"Change: jog until the ruler shows <b>{SPAN:.0f} mm</b> (blue), then <b>Save Y</b> / <b>Save Z</b>.")
 
@@ -579,11 +579,9 @@ class Panel(ScreenPanel):
                 f"G90\nG1 X{x} Y{y} F6000\nM400"
             where = f"X{x:.0f} Y{y:.0f} (span {y + load_offset():.0f} mm)"
         else:
-            z, cal = load_z()
-            if not cal:
-                self.bt_info.set_markup(mk("Z measuring height not set: Setup pos -> jog Z until the fixed side is "
-                                           "150 mm from the Z idler centres -> Save Z. Measuring here.", color=ORANGE))
-                return after() if after else None
+            z, _ = load_z()
+            z0, z1 = self._limits("z")
+            z = min(max(z, z0 + 5), z1 - 5)
             if all(a in homed for a in "xyz") and pos[2] is not None and abs(pos[2] - z) < 0.5:
                 return after() if after else None
             script = ("" if all(a in homed for a in "xyz") else "G28\n") + f"G90\nG1 Z{z} F900\nM400"
