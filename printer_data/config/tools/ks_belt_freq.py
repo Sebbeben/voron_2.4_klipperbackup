@@ -41,7 +41,7 @@ TARGET = 110.0
 TOLERANCE = 5.0   # green within +-5 Hz of the target
 MATCH = 2.0       # belts of one group (A/B, Z0-Z3) within this of each other
 STABLE = 1.0      # guided: a belt is settled when two rounds differ by less than this
-Z_TARGET = 140.0  # Voron docs: Z belts start at ~140 Hz (150 mm of the fixed side from the Z idler)
+Z_TARGET = 140.0  # Voron docs: Z belts ~140 Hz on a 150 mm span (fixed side, from the Z idler centres)
 SLOTS = ("B", "A", "Z0", "Z1", "Z2", "Z3")   # B first: left as seen from the front
 AB = ("B", "A")
 # Fixed toolhead position for measuring, so every measurement uses the same belt span lengths.
@@ -56,10 +56,15 @@ SPAN = 150.0
 # V2.4 size. Measured on this V2.4 350 with a ruler 2026-11-26: 150 mm at Y105 -> 45 mm.
 DEFAULT_SPAN_OFFSET = 45.0
 DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X axis (any bed size)
-# Z belts (Voron docs): raise the gantry until the fixed side of the belt is 150 mm from the Z idler
-# centres, ~140 Hz, all four equal. Standard height Z60 (checked with a ruler on this V2.4 350,
-# 2026-11-27: all four Z belts right there); "Save Z" stores another height. Clamped to stepper_z limits.
-DEFAULT_Z = 60.0
+# Z belts (Voron docs): 140 Hz with 150 mm of the fixed side between Z idler centre and gantry.
+# At that height (Z60 on this V2.4 350, checked with a ruler 2026-11-27) the span is below the bed
+# edge and hard to reach at the rear, so the panel measures with the gantry higher and scales the
+# target: same tension, f ~ 1/span  ->  target = 140 * 150 / span,  span = Z + Z_SPAN_OFFSET.
+# Z120 -> span 210 mm -> 100 Hz (clear of the ~82 Hz ambient hum; its 2nd harmonic is outside the band).
+# "Save Z" stores another measuring height; Z_SPAN_OFFSET can be overridden as "z_span_offset" in POS_FILE.
+DEFAULT_Z = 120.0
+Z_SPAN_OFFSET = 90.0       # span (mm) = Z + 90: 150 mm at Z60, measured on this printer
+Z_BAND = (0.82, 1.8)      # Z listening band as factors of the target (keeps the 2nd harmonic out)
 # Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
 # under 20 dB are not used. LEVEL is the background level in dBFS.
 SNR_OK, SNR_GOOD = 20.0, 30.0
@@ -87,6 +92,19 @@ def load_z():
             return float(json.load(f)["z"]), True
     except (OSError, ValueError, KeyError, TypeError):
         return DEFAULT_Z, False
+
+
+def load_z_span_offset():
+    try:
+        with open(POS_FILE) as f:
+            return float(json.load(f)["z_span_offset"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return Z_SPAN_OFFSET
+
+
+def z_span(z=None):
+    """Free span (mm) of the fixed Z belt side at gantry height z (default: measuring height)."""
+    return (load_z()[0] if z is None else z) + load_z_span_offset()
 
 
 def load_results():
@@ -133,7 +151,9 @@ def load_offset():
 
 
 def target_of(slot):
-    return Z_TARGET if slot.startswith("Z") else TARGET
+    if slot.startswith("Z"):
+        return Z_TARGET * SPAN / max(z_span(), 50.0)
+    return TARGET
 
 
 def mk(text, size=None, color=None, bold=False):
@@ -196,7 +216,7 @@ class Panel(ScreenPanel):
             loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
             loader.connect("size-prepared", lambda ld, w0, h0: ld.set_size(*(
                 (w, round(h0 * w / w0)) if w0 * h >= h0 * w else (round(w0 * h / h0), h))))
-            loader.write(ks_belt_sketch.sketch(slot))
+            loader.write(ks_belt_sketch.sketch(slot, z_span=z_span()))
             loader.close()
             image.set_from_pixbuf(loader.get_pixbuf())
         except Exception as e:  # a missing SVG loader must not break the panel
@@ -334,9 +354,11 @@ class Panel(ScreenPanel):
         self.su_info.set_markup(
             (extra + "\n" if extra else "")
             + f"A/B: <b>Y{y:.0f}</b> (X{x:.0f}) = {y + off:.0f} mm\n"
-            + f"Z: <b>Z{z:.0f}</b> ({'saved' if cal else 'standard'})\n"
+            + f"Z: <b>Z{z:.0f}</b> ({'saved' if cal else 'standard'}) = {z_span(z):.0f} mm span"
+            + f" -> target <b>{target_of('Z0'):.0f} Hz</b>\n"
             + "Moves there by itself when a belt is opened.\n"
-            + f"Change: jog until the ruler shows <b>{SPAN:.0f} mm</b> (blue), then <b>Save Y</b> / <b>Save Z</b>.")
+            + f"Change: A/B jog until the ruler shows <b>{SPAN:.0f} mm</b>, then <b>Save Y</b>. "
+            + "Z: any height where the belt is easy to reach, <b>Save Z</b> - the target follows.")
 
     def _show_overview(self, info=None):
         for k in SLOTS:
@@ -710,7 +732,11 @@ class Panel(ScreenPanel):
     def start(self):
         warm = self._fans_off()
         try:
-            self.proc = subprocess.Popen(["/usr/bin/python3", "-u", SCRIPT, "--live"],
+            cmd = ["/usr/bin/python3", "-u", SCRIPT, "--live"]
+            if self.current and self.current.startswith("Z"):
+                t = target_of(self.current)
+                cmd += ["--fmin", f"{t * Z_BAND[0]:.0f}", "--fmax", f"{t * Z_BAND[1]:.0f}"]
+            self.proc = subprocess.Popen(cmd,
                                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except OSError as e:
             self.bt_info.set_text(f"Could not start: {e}")
