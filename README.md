@@ -72,6 +72,13 @@ The part fan (5015) config is still prepared (commented out) in `fan_upgrade.cfg
 
 ## Maintenance log
 
+### 2026-11-27 - extruder grip fixed, R3D ABS calibrated, USB cam CPU lowered
+- Max-flow walls failed at ~15 mm3/s -> in-air feed test (100 mm per step, tape mark): Orbiter tension far too loose (16 mm3/s fed 88 %, 20 fed 77 %). Tightened in quarter turns: 20 -> 97 %, 24 -> 94 %, 28 -> motor skips at 250 C, 88 % without skipping at 260 C
+- `rotation_distance` 4.544 -> **4.703** (4.544 fed 103.5 mm after the tension fix; re-check fed exactly 100 mm)
+- Second calibration plate (all tests on one plate, `plate_20261127.gcode`), judged with a microscope: flow ratio **0.99**, PA **0.045** kept, **250 C**, retraction **0.5 mm**, max volumetric **18 mm3/s** (22 at 260 C). Values in `orca_profiles/ABS @...json` + `orca_profiles/README.md`; best photos in `~/calibration/` on the Pi
+- Remaining fine wisps on travel are the same at 0.4 and 1.2 mm retraction -> dry the filament (`DRY_ABS`)
+- USB cam WebRTC (go2rtc, with audio) encode 960x540 @ 15 -> 640x360 @ 10 fps: encoder ~78 % -> ~44 % of a core while watched. Full-res snapshot unchanged
+
 ### 2026-11-18 - A/B motor fault hunt, motors ordered, camera sound in Mainsail
 - Sensorless homing `uv_cp` fault traced step by step to **motor B** (supply, driver modules, X-MOT socket, both cables and endstop ports ruled out - details in TODO "A/B motor fault"). Motor A cable was also bad (open-load flags) and was replaced
 - `homing_v2.cfg`: `G4 P2000` before sensorless `G28 X`/`G28 Y` (Klipper TMC docs); X/Y `homing_speed` back to 80
@@ -110,9 +117,9 @@ Config changes (backup of the old files kept locally):
 - Added `fan_upgrade.cfg` (inactive)
 
 ## TODO
-- **Tomorrow (2026-11-27) - check on the plate:** flow tiles 0.88-1.02 (front centre), max flow 250 C (front right) and 260 C (right of centre, rear), retraction 0.2-1.2 mm (left edge; look for a duct mark on the towers nearest the centre), fine PA 0.03-0.06 (left rear), temperature tower 265->235 C (rear centre). Photos; then PA to Klipper, flow/max flow/retraction/temp to the Orca profiles; reset tools/bed_layout.json once the plate is cleared.
 - **Belt panel on real belts:** try the new views (one belt per screen, sketches, auto-move, guided A/B), check B=left / A=right and the "fixed" Z side in the sketches, and whether the signal meter (Signal/noise) and tips match how plucking feels. Measure the Z height for a 150 mm Z span once and press Save Z.
-- **Pi temperature:** 81-83 C and throttling with both camera streams + WebRTC viewers (Orca device tab, Edge). Lower camera fps and/or Pi cooling.
+- **Pi temperature:** 81-83 C and throttling with both camera streams + WebRTC viewers (Orca device tab, Edge). USB cam WebRTC lowered 2026-11-27; the Pi cam (camera-streamer, 1296x972 @ 15, ~80-90 % of a core) is now the biggest load - lower its fps and/or add Pi cooling.
+- **Calibration plate cleared:** run `python3 tools/gen_flow_tiles.py --reset-layout` before generating new tests.
 - **Klipper local patch:** `klippy/mcu.py` TRSYNC_TIMEOUT 0.025 -> 0.050 (2026-11-26, Tap over CAN timed out during homing). Reapply after every Klipper update.
 Status 2026-11-18: **printer parked** until new A/B motors arrive. Sensorless X/Y homing fails with TMC `uv_cp` (Undervoltage) - traced to the **motor B (stepper_x)**, see "A/B motor fault" below. Do not print until the motors are replaced.
 
