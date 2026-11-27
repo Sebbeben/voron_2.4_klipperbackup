@@ -59,11 +59,12 @@ DEFAULT_POS = (None, SPAN - DEFAULT_SPAN_OFFSET)   # X None = middle of the X ax
 # Z belts (Voron docs): 140 Hz with 150 mm of the fixed side between Z idler centre and gantry.
 # That height (~Z15 on this V2.4 350) puts the span below the bed edge, hard to reach at the rear, so the panel measures with the gantry higher and scales the
 # target: same tension, f ~ 1/span  ->  target = 140 * 150 / span,  span = Z + Z_SPAN_OFFSET.
-# Z75 -> span 210 mm -> 100 Hz (clear of the ~82 Hz ambient hum; its 2nd harmonic is outside the band).
+# Standard Z200 (gantry high, belt reached from above): span 335 mm -> 63 Hz. The listening band is
+# kept narrow (Z_BAND) so the ~82 Hz ambient hum and the 2nd harmonic both stay outside it.
 # "Save Z" stores another measuring height; Z_SPAN_OFFSET can be overridden as "z_span_offset" in POS_FILE.
-DEFAULT_Z = 75.0
-Z_SPAN_OFFSET = 135.0      # span (mm) = Z + 135: ruler 255 mm at Z120.2 on this printer (2026-11-27)
-Z_BAND = (0.86, 1.8)      # Z listening band as factors of the target: above the 82 Hz hum at 100 Hz, 2nd harmonic out
+DEFAULT_Z = 200.0
+Z_SPAN_OFFSET = 135.0      # span (mm) = Z + 135: ruler 255 mm at Z120.2 (Z homed) on this printer, 2026-11-27
+Z_BAND = (0.8, 1.2)       # Z listening band (x target): at Z200 = 50-75 Hz, below the 82 Hz hum, 2nd harmonic out
 # Signal quality: belt_freq.py reports the pluck peak vs the spectrum median (dB, "SNR") - plucks
 # under 20 dB are not used. LEVEL is the background level in dBFS.
 SNR_OK, SNR_GOOD = 20.0, 30.0
