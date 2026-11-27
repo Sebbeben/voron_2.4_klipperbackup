@@ -32,7 +32,7 @@ that matter.
 ## Filament start values (to be calibrated)
 | Profile | Nozzle | Bed | Fan | Max flow mm3/s | Notes |
 |---|---|---|---|---|---|
-| ABS | 250 / 255 | 105 / 110 | 15-40 % | 15 | enclosure closed |
+| ABS | 250 / 255 | 105 / 110 | 15-40 % | **18** | enclosure closed - **calibrated 2026-11-27**, see below |
 | ASA | 255 / 260 | 105 / 110 | 20-50 % | 15 | enclosure closed |
 | PLA | 215 / 220 | 60 / 65 | 100 % | 15 | **door/lid open** - heat creep risk |
 | PETG | 240 / 245 | 80 / 85 | 30-60 % | 12 | textured PEI |
@@ -40,8 +40,22 @@ that matter.
 | PA Nylon | 260 | 90 | 0-20 % | 8 | **dry first**, glue stick |
 | POM | 220 / 225 | 110 | 0-20 % | 8 | experimental, needs special build surface |
 
-Flow ratio is 0.92 (old Cura value) until the extruder `rotation_distance`
-is calibrated. TPU uses 1.0.
+Flow ratio is 0.92 (old Cura value) for the uncalibrated materials. ABS is calibrated (0.99). TPU uses 1.0.
+
+## ABS - calibrated 2026-11-27 (R3D ABS black, Rapido HF 0.4)
+Done with our own test generators (`tools/gen_*.py`, one plate) after the Orbiter tension was raised and
+Klipper `rotation_distance` re-calibrated to 4.703 (100 mm in = 100 mm fed). Best microscope photos: `~/calibration/`.
+
+| Setting | Value | Where | Test result |
+|---|---|---|---|
+| rotation_distance | 4.703 | printer.cfg | 4.544 fed 103.5 mm after the tension fix |
+| Pressure advance | 0.045 | printer.cfg | 0.04-0.045 even; 0.0475+ gap at fast->slow |
+| Nozzle temp | 250 C | filament | tower 265-235: 265/260 rough overhangs, 245-255 clean |
+| Flow ratio | 0.99 | filament | 0.97 and lower grooves, 1.00+ bulging at turns |
+| Retraction | 0.5 mm | printer + filament | 0.2 strings across, 0.4+ clean |
+| Max volumetric | 18 mm3/s (22 at 260 C) | filament | in-air feed: 20 -> 97 %, 24 -> 94 %, 28 skips steps at 250 C |
+
+Fine wisps that remain on travel (same at 0.4 and 1.2 mm retraction) point to moisture: dry with `DRY_ABS`.
 
 ## Calibration order (once the printer moves)
 1. Extruder `rotation_distance` in Klipper (then set flow ratio back towards 1.0)
