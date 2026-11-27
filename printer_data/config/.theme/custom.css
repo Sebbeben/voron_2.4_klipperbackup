@@ -1,9 +1,0 @@
-/* Live webcam players (go2rtc WebRTC): hide the play/pause button and the timeline from the browser's
-   native video controls - pausing a live stream is pointless. Keeps volume/mute and fullscreen.
-   Works in Chromium browsers (Chrome/Edge); Firefox ignores these selectors. */
-video.webcamImage::-webkit-media-controls-play-button,
-video.webcamImage::-webkit-media-controls-timeline,
-video.webcamImage::-webkit-media-controls-current-time-display,
-video.webcamImage::-webkit-media-controls-time-remaining-display {
-    display: none !important;
-}
