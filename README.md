@@ -117,6 +117,7 @@ Config changes (backup of the old files kept locally):
 - Added `fan_upgrade.cfg` (inactive)
 
 ## TODO
+- **New filament calibration (CALIB_PLATE, 2026-11-27):** `CALIB_PLATE MATERIAL=PETG RESET=1` (ABS PLA PETG TPU NYLON POM; `LIST=1`, `TEMP=0`, `NOZZLE=`, `BED=`, `NAME=`) writes `calib_<MAT>_<date>.gcode`: flow tiles, PA lines, retraction, max flow and the temp tower last, each one connected piece on a one-layer web with raised values and a title. Generic start values in `tools/calib_plate.py` - check against the spool. Active after the next Klipper restart (include added while a print was running). Next week: PETG, PLA, TPU, nylon, POM.
 - **Belt panel on real belts:** try the new views (one belt per screen, sketches, auto-move, guided A/B), check B=left / A=right and the "fixed" Z side in the sketches, and whether the signal meter (Signal/noise) and tips match how plucking feels. Measure the Z height for a 150 mm Z span once and press Save Z.
 - **Pi temperature:** 81-83 C and throttling with both camera streams + WebRTC viewers (Orca device tab, Edge). USB cam WebRTC lowered 2026-11-27; the Pi cam (camera-streamer, 1296x972 @ 15, ~80-90 % of a core) is now the biggest load - lower its fps and/or add Pi cooling.
 - **Calibration plate cleared:** run `python3 tools/gen_flow_tiles.py --reset-layout` before generating new tests.
