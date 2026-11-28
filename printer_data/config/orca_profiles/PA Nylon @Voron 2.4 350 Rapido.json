@@ -1,0 +1,65 @@
+{
+    "type": "filament",
+    "name": "PA Nylon @Voron 2.4 350 Rapido",
+    "inherits": "Generic PA @System",
+    "from": "User",
+    "version": "2.1.0.0",
+    "filament_settings_id": [
+        "PA Nylon @Voron 2.4 350 Rapido"
+    ],
+    "compatible_printers": [
+        "Voron 2.4 350 Rapido 0.4"
+    ],
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "chamber_temperatures": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "20"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_density": [
+        "1.14"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "textured_plate_temp": [
+        "90"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "90"
+    ],
+    "eng_plate_temp": [
+        "90"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "90"
+    ],
+    "filament_flow_ratio": [
+        "0.92"
+    ],
+    "filament_notes": "DRY IT FIRST (70-80 C for 8-12 h; nylon absorbs water in hours). Glue stick on PEI. Enclosure closed, heat soak. Plain PA only - PA-CF/GF needs a hardened nozzle. Max volumetric speed is a SAFE START value for the Rapido HF (temporary V6 nozzle is lower!) - raise it after the Orca max-flow test. Flow ratio 0.92 copies the old Cura value until extruder rotation_distance is calibrated."
+}

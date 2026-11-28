@@ -1,0 +1,71 @@
+{
+    "type": "filament",
+    "name": "HPM ABS @Voron 2.4 350 Rapido",
+    "inherits": "Generic ABS @System",
+    "from": "User",
+    "version": "2.1.0.0",
+    "filament_settings_id": [
+        "HPM ABS @Voron 2.4 350 Rapido"
+    ],
+    "compatible_printers": [
+        "Voron 2.4 350 Rapido 0.4"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "255"
+    ],
+    "chamber_temperatures": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "60"
+    ],
+    "fan_cooling_layer_time": [
+        "20"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "filament_density": [
+        "1.04"
+    ],
+    "hot_plate_temp": [
+        "105"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "textured_plate_temp": [
+        "105"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "110"
+    ],
+    "eng_plate_temp": [
+        "105"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "110"
+    ],
+    "filament_flow_ratio": [
+        "0.99"
+    ],
+    "filament_notes": "Home power monitor enclosure test prints. = 'ABS @Voron 2.4 350 Rapido' (250/255 C, bed 105/110, flow 0.99, max 18 mm3/s (calibrated 2026-11-27)) + XY shrink compensation 99.5 % and fan 10-30 % (off for 3 layers). Overhang/bridge fan kept at 60 % for the latch bridges. With the temporary V6 nozzle lower max volumetric speed to ~10.",
+    "filament_shrink": [
+        "99.5%"
+    ]
+}

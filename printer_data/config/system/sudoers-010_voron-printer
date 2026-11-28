@@ -1,0 +1,6 @@
+# Passwordless sudo for printer service management (added 2026-11-13)
+Cmnd_Alias PRINTER_SVC = /usr/bin/systemctl restart klipper, /usr/bin/systemctl restart moonraker, \
+                         /usr/bin/systemctl restart crowsnest, /usr/bin/systemctl restart KlipperScreen, \
+                         /usr/bin/systemctl stop klipper, /usr/bin/systemctl start klipper, \
+                         /usr/bin/systemctl daemon-reload, /usr/bin/dmesg, /usr/bin/journalctl
+voron ALL=(root) NOPASSWD: PRINTER_SVC
